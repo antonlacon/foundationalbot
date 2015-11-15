@@ -86,7 +86,7 @@ def command_irc_quit():
 def command_irc_timeout(user, seconds=600):
 	command_irc_send_message(".timeout {}".format(user, seconds))
 
-### INTERNAL VARIABLES ###
+### INTERNAL VARIABLES AND SUPPORT FUNCTIONS ###
 
 # Channel name is based on broadcaster's name, so use it to set first privileged user
 privileged_users.append(bot_cfg.channel[1:])
@@ -124,6 +124,7 @@ def add_user_strike(user):
 
 # Raffle support variables
 raffle_contestants = []
+raffle_active = False
 raffle_keyword = None
 
 ### START EXTERNAL CONNECTION ###
@@ -198,12 +199,14 @@ while connected:
 							raffle_keyword = msg[2].strip()
 							print("LOG: Raffle keyword set to: " + raffle_keyword)
 							command_irc_send_message("Raffle keyword set to: " + raffle_keyword)
+							raffle_active = True
 						# Empty all raffle settings
 						elif msg[1] == "clear":
 							print("LOG: Raffle entries cleared.")
 							raffle_contestants.clear()
 							raffle_winner = None
 							raffle_keyword = None
+							raffle_active = False
 							command_irc_send_message("Raffle settings and contestant entries cleared.")
 						# Announcing how many contestants are in the pool
 						elif msg[1] == "count":
@@ -249,16 +252,17 @@ while connected:
 						command_irc_send_message("Current stream time is: " + now_local + " UTC time is: " + now_utc)
 
 			# Raffle monitor
-			# Control with a True/False if raffle is active for faster parsing?
-			if message.strip() == raffle_keyword and username not in raffle_contestants:
-				# Treat subscribers special by adding a few more chances on their behalf
-				if user_subscriber_status == 1 or username == "antonlacon":
-					for i in range(0,bot_cfg.raffle_subscriber_entries):
+			# Control with a True/False if raffle is active for faster
+			if raffle_active == True:
+				if message.strip() == raffle_keyword and username not in raffle_contestants:
+					# Treat subscribers special by adding a few more chances on their behalf
+					if user_subscriber_status == 1 or username == "antonlacon":
+						for i in range(0,bot_cfg.raffle_subscriber_entries):
+							raffle_contestants.append(username)
+							print("LOG: " + username + "is entry # " + str(len(raffle_contestants)))
+					else:
 						raffle_contestants.append(username)
 						print("LOG: " + username + "is entry # " + str(len(raffle_contestants)))
-				else:
-					raffle_contestants.append(username)
-					print("LOG: " + username + "is entry # " + str(len(raffle_contestants)))
 
 			# Message monitor. Employ a strikeout system and ban policy.
 			# Control with a True / False if language monitoring is active
