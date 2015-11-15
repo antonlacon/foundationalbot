@@ -9,7 +9,6 @@
 # Timestamp chat messages too?
 # Test if bot is a moderator and set rate that way prior to starting message processing
 # Extend privileged users to check for mod status of users in channel?
-# Teach the raffle setup to know if users are subscribers to the channel
 # Build parser loop into a function
 # Convert message reading to a list and pop them instead
 # finish !time support - will need pytz installed (3rd party) or forget timezones altogether?
@@ -75,7 +74,7 @@ def command_irc_timeout(user, seconds=600):
 # Channel name is based on broadcaster's name, so use it to set first privileged user
 privileged_users.append(bot_cfg.channel[1:])
 
-# Regular expressions that will be used frequently so store what needs to be done
+# Regular expressions that will be used frequently so build the regex once to quickly retrieve
 irc_message_regex = re.compile(r"^@color=[#a-fA-F0-9]*;display-name=[a-zA-Z0-9_\-]*;emotes=[a-zA-Z0-9\-:\/,]*;subscriber=\d+;turbo=\d+;user-id=\d+;user-type=\w* :\w+!\w+@\w+\.tmi\.twitch\.tv PRIVMSG #\w+ :")
 irc_username_regex = re.compile(r"^@color=[#a-fA-F0-9]*;display-name=[a-zA-Z0-9_\-]*;emotes=[a-zA-Z0-9\-:\/,]*;subscriber=\d+;turbo=\d+;user-id=\d+;user-type=\w* :(\w+)")
 
@@ -133,7 +132,7 @@ while connected:
 		# Messages being received from the IRC server
 		irc_response = irc_socket.recv(1024).decode("utf-8")
 
-		# Failed login? Stop work. - test this up above? how? - below doesn't work
+		# FIXME Failed login? Stop work. - test this up above? how? - below doesn't work
 #		if irc_response == "tmi: :tmi.twitch.tv NOTICE * :Error logging in":
 #			print("ERROR: Failed to login to server.")
 #			irc.socket.close()
@@ -188,7 +187,7 @@ while connected:
 							raffle_contestants.clear()
 							raffle_winner = None
 							raffle_keyword = None
-							command_irc_send_message("Raffle settings and entrie cleared.")
+							command_irc_send_message("Raffle settings and contestant entries cleared.")
 						# Announcing how many contestants are in the pool
 						elif msg[1] == "count":
 							# Needs to differentiate unique users and entries in the case of subscribers?
@@ -201,14 +200,12 @@ while connected:
 								command_irc_send_message("No contestants in raffle pool.")
 							else:
 								raffle_winner = raffle_contestants[random.randrange(0,len(raffle_contestants),1)]
-								# FIXME use the display name
+								# FIXME use the display name?
 								print("LOG: Raffle winner: " + raffle_winner)
 								command_irc_send_message("Raffle winner: " + raffle_winner)
 								# Only allow winner to win one prize per raffle
-#								raffle_contestants.remove(raffle_winner)
-								# CONFIRM: This should remove multiple entries if a user was added multiple times (subscriber support)
 								# FIXME change value to remaining_contestants ?
-								raffle_contestants[:] = (value for value in raffle_contestants if value != raffle_winner)
+								raffle_contestants[:] = (remaining_contestants for remaining_contestants in raffle_contestants if remaining_contestants != raffle_winner)
 
 				# Commands available to anyone
 				elif msg[0] in command_list:
@@ -237,12 +234,14 @@ while connected:
 			# Raffle monitor
 			# Control with a True/False if raffle is active for faster parsing?
 			if message.strip() == raffle_keyword and username not in raffle_contestants:
-				# FIXME Test if user is a subscriber
-				# if user_subscriber_status == 1:
-				#	for loop i <= bot_cfg.raffle_subscriber_entries:
-				# 	append to the drawing pool
-				# else:
-				raffle_contestants.append(username)
+				# Treat subscribers special by adding a few more chances on their behalf
+				if user_subscriber_status == 1 or username == "antonlacon":
+					for i in range(0,bot_cfg.raffle_subscriber_entries):
+						raffle_contestants.append(username)
+						print("LOG: " + username + "is entry # " + str(len(raffle_contestants)))
+				else:
+					raffle_contestants.append(username)
+					print("LOG: " + username + "is entry # " + str(len(raffle_contestants)))
 
 			# Message monitor. Employ a strikeout system and ban policy.
 			# Control with a True / False if language monitoring is active
