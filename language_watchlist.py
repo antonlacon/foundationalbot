@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# This file is part of the Foundational IRC Bot project.
+
 # Lists are combined at the end of the file. Remember to adjust if adding more lists.
 
 # List of word strings, comma separted to take action on

@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# This file is part of the Foundational IRC Bot project.
+
 # Twitch IRC variables
 host_server = "irc.twitch.tv"
 host_port = 6667

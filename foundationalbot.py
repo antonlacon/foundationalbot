@@ -1,8 +1,26 @@
 #!/usr/bin/env python3
 
-# Foundational IRC bot for Twitch.tv
-# Evolved from tutorial located here: http://www.instructables.com/id/Twitchtv-Moderator-Bot/?ALLSTEPS
-# Used for reference: https://www.sevadus.tv/forums/index.php?/topic/774-simple-python-irc-bot/
+# Foundational IRC Bot for Twitch.tv
+
+# Copyright 2015 Ian Leonard <antonlacon@gmail.com>
+#
+# This file is foundationalbot.py and is part of the Foundational IRC Bot project.
+#
+# foundationalbot.py is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 3 of the License.
+#
+# foundationalbot.py is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with foundationalbot.py. If not, see <http://www.gnu.org/licenses/>.
+
+# For other Python3 based Twitch IRC Bots:
+# http://www.instructables.com/id/Twitchtv-Moderator-Bot/?ALLSTEPS
+# https://www.sevadus.tv/forums/index.php?/topic/774-simple-python-irc-bot/
 
 # ToDo:
 # Add timestamp to self-generated messages - write log function to use for messaging
@@ -18,7 +36,6 @@
 # Teach bot to send a whisper
 # Teach bot to receive a whisper
 # See what happens if the raffle keyword is set to None
-# Put on licensing information
 # Upload to Git
 # Remove support for the non-detailed twitch messages
 # Move command lists to bot_cfg?
