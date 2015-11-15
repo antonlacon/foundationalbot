@@ -198,10 +198,10 @@ while connected:
 							connected = False
 
 						# Raffle support commands
-						if msg[0] == "!raffle":
+						if msg[0] == "!raffle" and len(msg) > 1:
 							msg[1] = msg[1].strip().lower()
 							# Setting a watchword to monitor in the channel to look for active viewers
-							if msg[1] == "keyword":
+							if msg[1] == "keyword" and len(msg) > 2:
 								raffle_keyword = msg[2].strip()
 								print("LOG: Raffle keyword set to: " + raffle_keyword)
 								command_irc_send_message("Raffle keyword set to: " + raffle_keyword)
@@ -230,7 +230,6 @@ while connected:
 									print("LOG: Raffle winner: " + raffle_winner)
 									command_irc_send_message("Raffle winner: " + raffle_winner)
 									# Only allow winner to win one prize per raffle
-									# FIXME change value to remaining_contestants ?
 									raffle_contestants[:] = (remaining_contestants for remaining_contestants in raffle_contestants if remaining_contestants != raffle_winner)
 
 					# Commands available to anyone
