@@ -36,9 +36,7 @@
 # Teach bot to receive a whisper - Postponed til Whispers 2.0
 # See what happens if the raffle keyword is set to None
 # Upload to Git
-# Remove support for the non-detailed twitch messages
 # Move command lists to bot_cfg?
-# Build a smarter rate limiter - only need to limit sending messages to the server - keep count and delay after
 # Split commands between broadcaster, moderators, subscribers, anyone
 # Convert language watchlist to be for foul language
 # Add website whitelisting - youtube, twitch, wikipedia, ?
@@ -53,6 +51,11 @@ import random # Random number generator for raffle support
 from time import sleep # sleep() command
 from sys import exit # exit() command
 from datetime import datetime # date functions for !time command
+
+### START UP VARIABLES ###
+
+# Rate limit tracker
+messages_sent = 0
 
 # Command listing for all users - comma separated
 command_list = [ "!test",
@@ -69,35 +72,43 @@ privileged_command_list = [ "!quit", "!exit",
 # Create a list of users that allowed to execute administration commands
 privileged_users=[]
 
+# Channel name is based on broadcaster's name, so use it to set first privileged user
+broadcaster = bot_cfg.channel[1:]
+privileged_users.append(broadcaster)
+
 ### IRC COMMANDS ###
 
 # Send a message to the channel
 def command_irc_send_message(msg):
+	global messages_sent
 	irc_socket.send("PRIVMSG {} :{}\r\n".format(bot_cfg.channel, msg).encode("utf-8"))
+	messages_sent += 1
 
 # Ban a user from the channel
 def command_irc_ban(user):
+	global messages_sent
 	command_irc_send_message(".ban {}".format(user))
+	messages_sent += 1
 
 # Answer PING request with PONG
 def command_irc_ping_respond():
+	global messages_sent
 	irc_socket.send("PONG :tmi.twitch.tv\r\n".encode("utf-8"))
+	messages_sent +=1
 
 # Exit IRC channel
 def command_irc_quit():
+	global messages_sent
 	irc_socket.send("PART {}\r\n".format(bot_cfg.channel).encode("utf-8"))
+	messsages_sent += 1
 
 # Silence a user for X seconds (default 10 mins)
 def command_irc_timeout(user, seconds=600):
+	global messages_sent
 	command_irc_send_message(".timeout {}".format(user, seconds))
+	messages_sent += 1
 
-### INTERNAL VARIABLES AND SUPPORT FUNCTIONS ###
-
-# IRC response buffer for connection
-irc_response_buffer = ""
-
-# Channel name is based on broadcaster's name, so use it to set first privileged user
-privileged_users.append(bot_cfg.channel[1:])
+### PARSING VARIABLES AND SUPPORT FUNCTIONS ###
 
 # Regular expressions that will be used frequently so build the regex once to quickly retrieve
 irc_message_regex = re.compile(r"^@color=[#a-fA-F0-9]*;display-name=[a-zA-Z0-9_\-]*;emotes=[a-zA-Z0-9\-:\/,]*;subscriber=\d+;turbo=\d+;user-id=\d+;user-type=\w* :\w+!\w+@\w+\.tmi\.twitch\.tv PRIVMSG #\w+ :")
@@ -128,12 +139,16 @@ def add_user_strike(user):
 				print ("LOG: Messages from " + user + " purged.")
 	else:
 		user_strike_count[user] = 1
+		command_irc_timeout(user, bot_cfg.strikes_timeout_duration)
 		print ("LOG: User added to strike list: " + user)
 
 # Raffle support variables
 raffle_contestants = []
 raffle_active = False
 raffle_keyword = None
+
+# IRC response buffer for connection
+irc_response_buffer = ""
 
 ### START EXTERNAL CONNECTION ###
 
@@ -159,6 +174,9 @@ while connected:
 		irc_response_buffer = irc_response_buffer + irc_socket.recv(1024).decode("utf-8")
 		irc_response = re.split(r"[~\r\n]+", irc_response_buffer)
 		irc_response_buffer = irc_response.pop()
+
+		# Rate limiter to avoid 8-hr globabl timeout for the bot
+		messages_sent = 0
 
 		for message_line in irc_response:
 
@@ -300,7 +318,7 @@ while connected:
 				print(message_line)
 
 			# Rate control on sending messages
-			sleep(1 / bot_cfg.rate)
+			sleep((1 / bot_cfg.rate) * messages_sent)
 
 	except socket.error:
 		print("ERROR: Socket died")
