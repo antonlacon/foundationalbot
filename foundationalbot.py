@@ -32,12 +32,20 @@
 # Convert the bot to handle multiple channels? - how would it know whos schedule to show?
 # Add steam profile page to social media stuff?
 # Twitter integration?
-# Teach bot to send a whisper
-# Teach bot to receive a whisper
+# Teach bot to send a whisper - Postponed til Whispers 2.0
+# Teach bot to receive a whisper - Postponed til Whispers 2.0
 # See what happens if the raffle keyword is set to None
 # Upload to Git
 # Remove support for the non-detailed twitch messages
 # Move command lists to bot_cfg?
+# Drop USERSTATE messages from output - it goes with every msg to channel
+# Drop PART messages from output - people leaving the channel is unimportant?
+# Build a smarter rate limiter - only need to limit sending messages to the server - keep count and delay after
+# Split commands between broadcaster, moderators, subscribers, anyone
+# Convert language watchlist to be for foul language
+# Add website whitelisting - youtube, twitch, wikipedia, ?
+# If raffle is active, format the winner's username differently so it'll be seen in terminal log
+# Build raffle for subs only
 
 import bot_cfg # Bot's config file
 import language_watchlist # Bot's file for monitoring language to take action on
