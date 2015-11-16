@@ -100,7 +100,7 @@ def command_irc_ping_respond():
 def command_irc_quit():
 	global messages_sent
 	irc_socket.send("PART {}\r\n".format(bot_cfg.channel).encode("utf-8"))
-	messsages_sent += 1
+	messages_sent += 1
 
 # Silence a user for X seconds (default 10 mins)
 def command_irc_timeout(user, seconds=600):
@@ -288,7 +288,7 @@ while connected:
 						if user_subscriber_status == 1 or username == "antonlacon":
 							for i in range(0,bot_cfg.raffle_subscriber_entries):
 								raffle_contestants.append(username)
-								print("LOG: " + username + "is entry # " + str(len(raffle_contestants)))
+								print("LOG: " + username + " is entry # " + str(len(raffle_contestants)))
 						else:
 							raffle_contestants.append(username)
 							print("LOG: " + username + "is entry # " + str(len(raffle_contestants)))
@@ -309,8 +309,11 @@ while connected:
 					add_user_strike(username)
 					print ("LOG: " + username + " earned a timeout for a message in all capitals. Strike added.")
 
-			# Drop messages of users leaving (PART) and the user status messages in the channel (USERSTATE)
-			elif re.search(r" PART ", message_line) or re.search(r" USERSTATE ", message_line):
+			# Drop messages of users PARTing, the user status messages in the specific channel (USERSTATE), the bot's GLOBALUSERSTATE, and users JOINing the channel
+			elif re.search(r" PART ", message_line) or \
+			re.search(r" USERSTATE ", message_line) or \
+			re.search(r" GLOBALUSERSTATE", message_line) or \
+			re.search(r" JOIN ", message_line):
 				break
 
 			# Not a channel message covered elsewhere
