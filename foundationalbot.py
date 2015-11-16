@@ -38,8 +38,6 @@
 # Upload to Git
 # Remove support for the non-detailed twitch messages
 # Move command lists to bot_cfg?
-# Drop USERSTATE messages from output - it goes with every msg to channel
-# Drop PART messages from output - people leaving the channel is unimportant?
 # Build a smarter rate limiter - only need to limit sending messages to the server - keep count and delay after
 # Split commands between broadcaster, moderators, subscribers, anyone
 # Convert language watchlist to be for foul language
@@ -176,7 +174,7 @@ while connected:
 				print("LOG: Received PING. Sent PONG.")
 
 			# Majority of parsing will be done on PRIVMSGs from the server
-			elif re.search(" PRIVMSG ", message_line):
+			elif re.search(r" PRIVMSG ", message_line):
 # Debug option
 #				print(message_line)
 
@@ -293,7 +291,11 @@ while connected:
 					add_user_strike(username)
 					print ("LOG: " + username + " earned a timeout for a message in all capitals. Strike added.")
 
-			# Not a channel message or a ping request
+			# Drop messages of users leaving (PART) and the user status messages in the channel (USERSTATE)
+			elif re.search(r" PART ", message_line) or re.search(r" USERSTATE ", message_line):
+				break
+
+			# Not a channel message covered elsewhere
 			else:
 				print(message_line)
 
