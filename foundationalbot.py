@@ -38,10 +38,11 @@
 # Upload to Git
 # Move command lists to bot_cfg?
 # Split commands between broadcaster, moderators, subscribers, anyone
-# Convert language watchlist to be for foul language
+# Convert language watchlist to be for foul language?
 # Add website whitelisting - youtube, twitch, wikipedia, ?
 # If raffle is active, format the winner's username differently so it'll be seen in terminal log
 # Build raffle for subs only
+# Figure out flood control or let Twitch global ban take care of it?
 
 import bot_cfg # Bot's config file
 import language_watchlist # Bot's file for monitoring language to take action on
@@ -110,9 +111,8 @@ def command_irc_timeout(user, seconds=600):
 
 ### PARSING VARIABLES AND SUPPORT FUNCTIONS ###
 
-# Regular expressions that will be used frequently so build the regex once to quickly retrieve
-irc_message_regex = re.compile(r"^@color=[#a-fA-F0-9]*;display-name=[a-zA-Z0-9_\-]*;emotes=[a-zA-Z0-9\-:\/,]*;subscriber=\d+;turbo=\d+;user-id=\d+;user-type=\w* :\w+!\w+@\w+\.tmi\.twitch\.tv PRIVMSG #\w+ :")
-irc_username_regex = re.compile(r"^@color=[#a-fA-F0-9]*;display-name=[a-zA-Z0-9_\-]*;emotes=[a-zA-Z0-9\-:\/,]*;subscriber=\d+;turbo=\d+;user-id=\d+;user-type=\w* :(\w+)")
+# Regular expressions that will be used frequently so build the regex once to quickly retrieve, use grouping to reuse
+irc_message_regex = re.compile(r"^@color=[#a-fA-F0-9]*;display-name=([a-zA-Z0-9_\-]*);emotes=[a-zA-Z0-9\-:\/,]*;subscriber=(\d+);turbo=\d+;user-id=\d+;user-type=(\w*) :(\w+)!\w+@\w+\.tmi\.twitch\.tv PRIVMSG (#\w+) :")
 
 # User Strike List to monitor banning
 user_strike_count = {}
@@ -197,12 +197,15 @@ while connected:
 #				print(message_line)
 
 				# Channel message parsing
-				username = irc_username_regex.search(message_line).group(1)
+				parsed_irc_message = irc_message_regex.search(message_line)
+				user_display_name = parsed_irc_message.group(1)
+				user_subscriber_status = parsed_irc_message.group(2)
+				user_mod_status = parsed_irc_message.group(3)
+				username = parsed_irc_message.group(4)
+				irc_channel = parsed_irc_message.group(5)
 				message = irc_message_regex.sub("", message_line)
-				user_display_name = re.search(r"display-name=([a-zA-Z0-9_\-]+)", message_line).group(1)
-				user_subscriber_status = re.search(r"subscriber=(\d+)", message_line).group(1)
 
-				print(username + ": " + message)
+				print(irc_channel + ":" + username + ": " + message)
 
 				# Command Parser - if adding or subtracting commands, remember to adjust the command listings at the top
 				if message.startswith("!"):
