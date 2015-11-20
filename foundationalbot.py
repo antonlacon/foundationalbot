@@ -60,7 +60,7 @@ messages_sent = 0
 
 # Command listing for all users - comma separated
 command_list = [ "!test",
-		"!xbl",
+		"!xbl", "!xb1",
 		"!psn",
 		"!youtube",
 		"!twitter",
@@ -267,7 +267,7 @@ while connected:
 							command_irc_send_message("All systems nominal.")
 
 						# Social media commands
-						if msg[0] == "!xbl":
+						if msg[0] == "!xbl" or msg[0] == "!xb1":
 							command_irc_send_message("Broadcaster's XBL ID is: " + bot_cfg.xbox_handle)
 						elif msg[0] == "!psn":
 							command_irc_send_message("Broadcaster's PSN IS is: " + bot_cfg.playstation_handle)
