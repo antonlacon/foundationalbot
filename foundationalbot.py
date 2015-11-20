@@ -26,23 +26,20 @@
 # Add timestamp to self-generated messages - write log function to use for messaging
 # Timestamp chat messages too?
 # Test if bot is a moderator and set rate that way prior to starting message processing
-# Extend privileged users to check for mod status of users in channel?
 # Build parser loop into a function
-# finish !time support - will need pytz installed (3rd party) or forget timezones altogether?
-# Convert the bot to handle multiple channels? - how would it know whos schedule to show?
-# Add steam profile page to social media stuff?
+# finish !schedule support - will need pytz installed (3rd party) or forget timezones altogether?
+# Convert the bot to handle multiple channels? - how would it know whos schedule to show? dictionary listing off broadcaster
 # Twitter integration?
 # Teach bot to send a whisper - Postponed til Whispers 2.0
 # Teach bot to receive a whisper - Postponed til Whispers 2.0
 # See what happens if the raffle keyword is set to None
 # Upload to Git
-# Move command lists to bot_cfg?
-# Split commands between broadcaster, moderators, subscribers, anyone
 # Convert language watchlist to be for foul language?
 # Add website whitelisting - youtube, twitch, wikipedia, ?
 # If raffle is active, format the winner's username differently so it'll be seen in terminal log
 # Build raffle for subs only
 # Figure out flood control or let Twitch global ban take care of it?
+# Timed messages to channel - youtube, twitter, ?
 
 import bot_cfg # Bot's config file
 import language_watchlist # Bot's file for monitoring language to take action on
@@ -59,23 +56,29 @@ from datetime import datetime # date functions for !time command
 messages_sent = 0
 
 # Command listing for all users - comma separated
-command_list = [ "!test",
+public_command_list = [ "!test",
 		"!xbl", "!xb1",
 		"!psn",
+		"!steam",
 		"!youtube",
 		"!twitter",
-		"!time" ]
+		"!schedule" ]
 
-# Command listing for privileged users only - comma separated
-privileged_command_list = [ "!quit", "!exit",
+# Follower only commands - comma separated
+follower_command_list = []
+
+# Subscriber only commands - comma separated
+subscriber_command_list = []
+
+# Moderator only commands - comma separated
+moderator_command_list = []
+
+# Broadcaster only commands - comma separated
+broadcaster_command_list = [ "!quit", "!exit",
 				"!raffle" ]
 
-# Create a list of users that allowed to execute administration commands
-privileged_users=[]
-
-# Channel name is based on broadcaster's name, so use it to set first privileged user
+# Channel name is based on broadcaster's name, so use it to determine broadcaster
 broadcaster = bot_cfg.channel[1:]
-privileged_users.append(broadcaster)
 
 ### IRC COMMANDS ###
 
@@ -214,7 +217,7 @@ while connected:
 					msg[0] = msg[0].lower()
 
 					# Commands only available to privileged users
-					if msg[0] in privileged_command_list and username in privileged_users:
+					if msg[0] in broadcaster_command_list and username == broadcaster:
 
 						# Shutting down the bot in a clean manner
 						if msg[0] == "!quit" or msg[0] == "!exit":
@@ -260,7 +263,7 @@ while connected:
 									raffle_contestants[:] = (remaining_contestants for remaining_contestants in raffle_contestants if remaining_contestants != raffle_winner)
 
 					# Commands available to anyone
-					elif msg[0] in command_list:
+					elif msg[0] in public_command_list:
 
 						# Basic test command to see if bot works
 						if msg[0] == "!test":
@@ -270,15 +273,16 @@ while connected:
 						if msg[0] == "!xbl" or msg[0] == "!xb1":
 							command_irc_send_message("Broadcaster's XBL ID is: " + bot_cfg.xbox_handle)
 						elif msg[0] == "!psn":
-							command_irc_send_message("Broadcaster's PSN IS is: " + bot_cfg.playstation_handle)
+							command_irc_send_message("Broadcaster's PSN ID is: " + bot_cfg.playstation_handle)
+						elif msg[0] == "!steam":
+							command_irc_send_message("Broadcaster's Steam ID is: " + bot_cfg.steam_handle +  " and profile is: " + bot_cfg.steam_url)
 						elif msg[0] == "!twitter":
 							command_irc_send_message("Broadcaster's twitter url is: " + bot_cfg.twitter_url)
 						elif msg[0] == "!youtube":
 							command_irc_send_message("Select broadcasts and highlights may be viewed on YouTube at: " + bot_cfg.youtube_url)
-						# add Steam page?
 
 						# State streamer's (actually bot's) current time and time to next broadcast
-						if msg[0] == "!time":
+						if msg[0] == "!schedule":
 							now_local = datetime.now().strftime("%A %I:%M%p")
 							now_utc = datetime.utcnow().strftime("%A %I:%M%p")
 							command_irc_send_message("Current stream time is: " + now_local + " UTC time is: " + now_utc)
@@ -288,18 +292,18 @@ while connected:
 				if raffle_active == True:
 					if message.strip() == raffle_keyword and username not in raffle_contestants:
 						# Treat subscribers special by adding a few more chances on their behalf
-						if user_subscriber_status == 1 or username == "antonlacon":
+						if user_subscriber_status == 1:
 							for i in range(0,bot_cfg.raffle_subscriber_entries):
 								raffle_contestants.append(username)
 								print("LOG: " + username + " is entry # " + str(len(raffle_contestants)))
 						else:
 							raffle_contestants.append(username)
-							print("LOG: " + username + "is entry # " + str(len(raffle_contestants)))
+							print("LOG: " + username + " is entry # " + str(len(raffle_contestants)))
 
 				# Message monitor. Employ a strikeout system and ban policy.
 				# Control with a True / False if language monitoring is active
 				for language_control_test in language_watchlist.prohibited_words:
-					if re.search(language_control_test, message): # and username not in privileged_users:
+					if re.search(language_control_test, message):
 
 						add_user_strike(username)
 						print ("LOG: " + username +" earned a strike for violating the language watchlist.")
