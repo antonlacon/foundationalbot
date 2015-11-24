@@ -62,7 +62,8 @@ public_command_list = [ "!test",
 		"!steam",
 		"!youtube",
 		"!twitter",
-		"!schedule" ]
+		"!schedule",
+		"!time" ]
 
 # Follower only commands - comma separated
 follower_command_list = []
@@ -181,6 +182,9 @@ while connected:
 		# Rate limiter to avoid 8-hr globabl timeout for the bot
 		messages_sent = 0
 
+		# Timestamp
+		now_local_logging = datetime.now().strftime("%Y%m%d %H:%M:%S")
+
 		for message_line in irc_response:
 
 			# FIXME Failed login? Stop work. - test this up above? how? - below doesn't work
@@ -208,7 +212,7 @@ while connected:
 				irc_channel = parsed_irc_message.group(5)
 				message = irc_message_regex.sub("", message_line)
 
-				print(irc_channel + ":" + username + ": " + message)
+				print(now_local_logging + ":" + irc_channel + ":" + username + ": " + message)
 
 				# Command Parser - if adding or subtracting commands, remember to adjust the command listings at the top
 				if message.startswith("!"):
@@ -226,9 +230,9 @@ while connected:
 							command_irc_quit()
 							irc_socket.close()
 							connected = False
-
+							break
 						# Raffle support commands
-						if msg[0] == "!raffle" and len(msg) > 1:
+						elif msg[0] == "!raffle" and len(msg) > 1:
 							msg[1] = msg[1].strip().lower()
 							# Setting a watchword to monitor in the channel to look for active viewers
 							if msg[1] == "keyword" and len(msg) > 2:
@@ -251,7 +255,6 @@ while connected:
 								command_irc_send_message("Raffle contestants: " + str(len(raffle_contestants)))
 							# Selecting a winner from the pool
 							elif msg[1] == "winner":
-								print("LOG: Raffle winner used.")
 								if len(raffle_contestants) == 0:
 									command_irc_send_message("No contestants in raffle pool.")
 								else:
@@ -259,7 +262,7 @@ while connected:
 									# FIXME use the display name?
 									print("LOG: Raffle winner: " + raffle_winner)
 									command_irc_send_message("Raffle winner: " + raffle_winner)
-									# Only allow winner to win one prize per raffle
+									# Only allow winner to win once per raffle
 									raffle_contestants[:] = (remaining_contestants for remaining_contestants in raffle_contestants if remaining_contestants != raffle_winner)
 
 					# Commands available to anyone
@@ -268,9 +271,8 @@ while connected:
 						# Basic test command to see if bot works
 						if msg[0] == "!test":
 							command_irc_send_message("All systems nominal.")
-
 						# Social media commands
-						if msg[0] == "!xbl" or msg[0] == "!xb1":
+						elif msg[0] == "!xbl" or msg[0] == "!xb1":
 							command_irc_send_message("Broadcaster's XBL ID is: " + bot_cfg.xbox_handle)
 						elif msg[0] == "!psn":
 							command_irc_send_message("Broadcaster's PSN ID is: " + bot_cfg.playstation_handle)
@@ -279,13 +281,16 @@ while connected:
 						elif msg[0] == "!twitter":
 							command_irc_send_message("Broadcaster's twitter url is: " + bot_cfg.twitter_url)
 						elif msg[0] == "!youtube":
-							command_irc_send_message("Select broadcasts and highlights may be viewed on YouTube at: " + bot_cfg.youtube_url)
-
+							command_irc_send_message("Select broadcasts, highlights and other videos may be found on YouTube: " + bot_cfg.youtube_url)
 						# State streamer's (actually bot's) current time and time to next broadcast
-						if msg[0] == "!schedule":
+						elif msg[0] == "!schedule":
+							now_local_day = datetime.now().strftime("%A")
+							now_local = datetime.now().strftime("%I:%M%p")
+#							now_utc = datetime.utcnow().strftime("%A %I:%M%p")
+							command_irc_send_message("Current stream time is: " + now_local_day + " " + now_local + ". Today's schedule is: " + bot_cfg.broadcaster_schedule[now_local_day])
+						elif msg[0] == "!time":
 							now_local = datetime.now().strftime("%A %I:%M%p")
-							now_utc = datetime.utcnow().strftime("%A %I:%M%p")
-							command_irc_send_message("Current stream time is: " + now_local + " UTC time is: " + now_utc)
+							command_irc_send_message("Current stream time is: " + now_local)
 
 				# Raffle monitor
 				# Control with a True/False if raffle is active for faster

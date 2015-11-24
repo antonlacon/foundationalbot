@@ -15,11 +15,21 @@ rate = (20/30)
 # Worry about that if a 2/3 second delay ever becomes an issue.
 # This needs to be balanced with actions that send multiple commands to the IRC server
 
+# Stream Schedule
+broadcaster_schedule = { "Monday" : "abc",
+                        "Tuesday" : "def",
+                        "Wednesday" : "ghi",
+                        "Thursday" : "jkl",
+                        "Friday" : "mno",
+                        "Saturday" : "pqr",
+                        "Sunday" : "stu" }
+
 # Social media settings
 xbox_handle = ""
 playstation_handle = ""
 #playstation_trophy_url = "" # need to sign up first at playstation's site
-#steam_url = ""
+steam_handle = ""
+steam_url = ""
 twitter_url = ""
 youtube_url = ""
 
