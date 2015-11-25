@@ -40,6 +40,7 @@
 # Build raffle for subs only
 # Figure out flood control or let Twitch global ban take care of it?
 # Timed messages to channel - youtube, twitter, ?
+# Add a reset command - resets raffle settings, multi settings, and clears strikeout list
 
 import bot_cfg # Bot's config file
 import language_watchlist # Bot's file for monitoring language to take action on
@@ -76,7 +77,8 @@ moderator_command_list = []
 
 # Broadcaster only commands - comma separated
 broadcaster_command_list = [ "!quit", "!exit",
-				"!raffle" ]
+				"!raffle",
+				"!multi" ]
 
 # Channel name is based on broadcaster's name, so use it to determine broadcaster
 broadcaster = bot_cfg.channel[1:]
@@ -150,6 +152,10 @@ def add_user_strike(user):
 raffle_contestants = []
 raffle_active = False
 raffle_keyword = None
+
+# Multistream support variables
+multistream_url = "http://kadgar.net/live/" + broadcaster + "/"
+multistream_url_default = multistream_url
 
 # IRC response buffer for connection
 irc_response_buffer = ""
@@ -264,6 +270,28 @@ while connected:
 									command_irc_send_message("Raffle winner: " + raffle_winner)
 									# Only allow winner to win once per raffle
 									raffle_contestants[:] = (remaining_contestants for remaining_contestants in raffle_contestants if remaining_contestants != raffle_winner)
+						# Supporting multiple streamers
+						elif msg[0] == "!multi":
+							if len(msg) > 1:
+								msg[1] = msg[1].strip().lower()
+								if msg[1] == "add" and len(msg) == 3:
+									multistream_url = multistream_url + msg[2].strip() + "/"
+									print("LOG: Multistream URL set to: " + multistream_url)
+									command_irc_send_message("Multistream URL set to: " + multistream_url)
+								elif msg[1] == "set" and len(msg) == 3:
+									if msg[2].lower() == "default":
+										multistream_url = multistream_url_default
+										print("LOG: Multistream URl reset to default.")
+										command_irc_send_message("Multistream URL reset to default.")
+									else:
+										multistream_url = msg[2].strip()
+										print("LOG: Multistream URL set to: " + multistream_url)
+										command_irc_send_message("Multistream URL set to: " + multistream_url)
+								else:
+									print("LOG: Unknown usage of !multi.")
+									command_irc_send_message("Unknown usage of !multi.")
+							else:
+								command_irc_send_message("Multistream URL is: " + multistream_url)
 
 					# Commands available to anyone
 					elif msg[0] in public_command_list:
