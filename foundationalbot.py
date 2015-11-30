@@ -257,8 +257,13 @@ while connected:
 							# Announcing how many contestants are in the pool
 							elif msg[1] == "count":
 								# Needs to differentiate unique users and entries in the case of subscribers?
-								print("LOG: Raffle count used.")
+								print("LOG: Raffle participants: " + str(len(raffle_contestants)))
 								command_irc_send_message("Raffle contestants: " + str(len(raffle_contestants)))
+							# Closing raffle to new entries
+							elif msg[1] == "close":
+								raffle_active = False
+								print("LOG: Raffle closed.")
+								command_irc_send_message("Raffle closed to further entries.")
 							# Selecting a winner from the pool
 							elif msg[1] == "winner":
 								if len(raffle_contestants) == 0:
