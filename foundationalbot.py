@@ -28,19 +28,18 @@
 # Test if bot is a moderator and set rate that way prior to starting message processing
 # Build parser loop into a function
 # finish !schedule support - will need pytz installed (3rd party) or forget timezones altogether?
-# Convert the bot to handle multiple channels? - how would it know whos schedule to show? dictionary listing off broadcaster
 # Twitter integration?
 # Teach bot to send a whisper - Postponed til Whispers 2.0
 # Teach bot to receive a whisper - Postponed til Whispers 2.0
 # See what happens if the raffle keyword is set to None
 # Upload to Git
-# Convert language watchlist to be for foul language?
 # Add website whitelisting - youtube, twitch, wikipedia, ?
 # If raffle is active, format the winner's username differently so it'll be seen in terminal log
-# Build raffle for subs only
-# Figure out flood control or let Twitch global ban take care of it?
+# Build raffle for subs only - Get partnered first
 # Timed messages to channel - youtube, twitter, ?
 # Add a reset command - resets raffle settings, multi settings, and clears strikeout list
+# Shoutout command?
+# Teach bot to change stream title - need editor status
 
 import bot_cfg # Bot's config file
 import language_watchlist # Bot's file for monitoring language to take action on
@@ -272,7 +271,8 @@ while connected:
 									raffle_winner = raffle_contestants[random.randrange(0,len(raffle_contestants),1)]
 									# FIXME use the display name?
 									print("LOG: Raffle winner: " + raffle_winner)
-									command_irc_send_message("Raffle winner: " + raffle_winner)
+									# FIXME Win odds assume only 1 ticket entry - fix if subscription ever happens
+									command_irc_send_message("Raffle winner: " + raffle_winner + ". Odds to win were: " + str((1/len(raffle_contestants)*100)) + "%")
 									# Only allow winner to win once per raffle
 									raffle_contestants[:] = (remaining_contestants for remaining_contestants in raffle_contestants if remaining_contestants != raffle_winner)
 						# Supporting multiple streamers
