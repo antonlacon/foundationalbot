@@ -117,7 +117,7 @@ def command_irc_timeout(user, seconds=600):
 ### PARSING VARIABLES AND SUPPORT FUNCTIONS ###
 
 # Regular expressions that will be used frequently so build the regex once to quickly retrieve, use grouping to reuse
-irc_message_regex = re.compile(r"^@color=[#a-fA-F0-9]*;display-name=([a-zA-Z0-9_\-]*);emotes=[a-zA-Z0-9\-:\/,]*;subscriber=(\d+);turbo=\d+;user-id=\d+;user-type=(\w*) :(\w+)!\w+@\w+\.tmi\.twitch\.tv PRIVMSG (#\w+) :")
+irc_message_regex = re.compile(r"^@color=[#a-fA-F0-9]*;display-name=([a-zA-Z0-9_\-]*);emotes=[a-zA-Z0-9\-:\/,]*;mod=\d+;room-id=\d+;subscriber=(\d+);turbo=\d+;user-id=\d+;user-type=(\w*) :(\w+)!\w+@\w+\.tmi\.twitch\.tv PRIVMSG (#\w+) :")
 
 # User Strike List to monitor banning
 user_strike_count = {}
