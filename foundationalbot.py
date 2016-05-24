@@ -99,7 +99,7 @@ def command_irc_timeout(user, seconds=600):
 	command_irc_send_message(".timeout {}".format(user, seconds))
 
 # Unban or return voice to a user
-def command_irc_unban(user)
+def command_irc_unban(user):
 	command_irc_send_message(".unban {}".format(user))
 
 # Answer PING request with PONG
