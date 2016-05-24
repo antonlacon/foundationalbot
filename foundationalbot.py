@@ -2,7 +2,7 @@
 
 # Foundational IRC Bot for Twitch.tv
 
-# Copyright 2015 Ian Leonard <antonlacon@gmail.com>
+# Copyright 2015-2016 Ian Leonard <antonlacon@gmail.com>
 #
 # This file is foundationalbot.py and is part of the Foundational IRC Bot project.
 #
@@ -23,7 +23,7 @@
 # https://www.sevadus.tv/forums/index.php?/topic/774-simple-python-irc-bot/
 
 # ToDo:
-# Add timestamp to self-generated messages - write log function to use for messaging
+# Add timestamp to self-generated messages - write log function to use for messaging - debug module can do it?
 # Timestamp chat messages too?
 # Test if bot is a moderator and set rate that way prior to starting message processing
 # Build parser loop into a function
@@ -32,7 +32,6 @@
 # Teach bot to send a whisper - Postponed til Whispers 2.0
 # Teach bot to receive a whisper - Postponed til Whispers 2.0
 # See what happens if the raffle keyword is set to None
-# Upload to Git
 # Add website whitelisting - youtube, twitch, wikipedia, ?
 # If raffle is active, format the winner's username differently so it'll be seen in terminal log
 # Build raffle for subs only - Get partnered first
@@ -77,7 +76,8 @@ moderator_command_list = []
 # Broadcaster only commands - comma separated
 broadcaster_command_list = [ "!quit", "!exit",
 				"!raffle",
-				"!multi" ]
+				"!voice" ]
+#				"!multi",
 
 # Channel name is based on broadcaster's name, so use it to determine broadcaster
 broadcaster = bot_cfg.channel[1:]
@@ -92,9 +92,15 @@ def command_irc_send_message(msg):
 
 # Ban a user from the channel
 def command_irc_ban(user):
-	global messages_sent
 	command_irc_send_message(".ban {}".format(user))
-	messages_sent += 1
+
+# Silence a user for X seconds (default 10 mins)
+def command_irc_timeout(user, seconds=600):
+	command_irc_send_message(".timeout {}".format(user, seconds))
+
+# Unban or return voice to a user
+def command_irc_unban(user)
+	command_irc_send_message(".unban {}".format(user))
 
 # Answer PING request with PONG
 def command_irc_ping_respond():
@@ -106,12 +112,6 @@ def command_irc_ping_respond():
 def command_irc_quit():
 	global messages_sent
 	irc_socket.send("PART {}\r\n".format(bot_cfg.channel).encode("utf-8"))
-	messages_sent += 1
-
-# Silence a user for X seconds (default 10 mins)
-def command_irc_timeout(user, seconds=600):
-	global messages_sent
-	command_irc_send_message(".timeout {}".format(user, seconds))
 	messages_sent += 1
 
 ### PARSING VARIABLES AND SUPPORT FUNCTIONS ###
@@ -240,12 +240,12 @@ while connected:
 						elif msg[0] == "!raffle" and len(msg) > 1:
 							msg[1] = msg[1].strip().lower()
 							# Setting a watchword to monitor in the channel to look for active viewers
-							if msg[1] == "keyword" and len(msg) > 2:
+							if msg[1] == "keyword" and len(msg) == 3:
 								raffle_keyword = msg[2].strip()
 								print("LOG: Raffle keyword set to: " + raffle_keyword)
 								command_irc_send_message("Raffle keyword set to: " + raffle_keyword)
 								raffle_active = True
-							# Empty all raffle settings
+							# Reset all raffle settings
 							elif msg[1] == "clear":
 								print("LOG: Raffle entries cleared.")
 								raffle_contestants.clear()
@@ -253,20 +253,20 @@ while connected:
 								raffle_keyword = None
 								raffle_active = False
 								command_irc_send_message("Raffle settings and contestant entries cleared.")
-							# Announcing how many contestants are in the pool
+							# Announce number of entries in pool
 							elif msg[1] == "count":
-								# Needs to differentiate unique users and entries in the case of subscribers?
+								# FIXME Needs to differentiate unique users and entries in the case of subscribers?
 								print("LOG: Raffle participants: " + str(len(raffle_contestants)))
 								command_irc_send_message("Raffle contestants: " + str(len(raffle_contestants)))
 							# Closing raffle to new entries
 							elif msg[1] == "close":
 								raffle_active = False
-								print("LOG: Raffle closed.")
+								print("LOG: Raffle closed to further entries.")
 								command_irc_send_message("Raffle closed to further entries.")
 							# Selecting a winner from the pool
 							elif msg[1] == "winner":
 								if len(raffle_contestants) == 0:
-									command_irc_send_message("No contestants in raffle pool.")
+									command_irc_send_message("No winners available; raffle pool is empty.")
 								else:
 									raffle_winner = raffle_contestants[random.randrange(0,len(raffle_contestants),1)]
 									# FIXME use the display name?
@@ -276,27 +276,31 @@ while connected:
 									# Only allow winner to win once per raffle
 									raffle_contestants[:] = (remaining_contestants for remaining_contestants in raffle_contestants if remaining_contestants != raffle_winner)
 						# Supporting multiple streamers
-						elif msg[0] == "!multi":
-							if len(msg) > 1:
-								msg[1] = msg[1].strip().lower()
-								if msg[1] == "add" and len(msg) == 3:
-									multistream_url = multistream_url + msg[2].strip() + "/"
-									print("LOG: Multistream URL set to: " + multistream_url)
-									command_irc_send_message("Multistream URL set to: " + multistream_url)
-								elif msg[1] == "set" and len(msg) == 3:
-									if msg[2].lower() == "default":
-										multistream_url = multistream_url_default
-										print("LOG: Multistream URl reset to default.")
-										command_irc_send_message("Multistream URL reset to default.")
-									else:
-										multistream_url = msg[2].strip()
-										print("LOG: Multistream URL set to: " + multistream_url)
-										command_irc_send_message("Multistream URL set to: " + multistream_url)
-								else:
-									print("LOG: Unknown usage of !multi.")
-									command_irc_send_message("Unknown usage of !multi.")
-							else:
-								command_irc_send_message("Multistream URL is: " + multistream_url)
+#						elif msg[0] == "!multi":
+#							if len(msg) > 1:
+#								msg[1] = msg[1].strip().lower()
+#								if msg[1] == "add" and len(msg) == 3:
+#									multistream_url = multistream_url + msg[2].strip() + "/"
+#									print("LOG: Multistream URL set to: " + multistream_url)
+#									command_irc_send_message("Multistream URL set to: " + multistream_url)
+#								elif msg[1] == "set" and len(msg) == 3:
+#									if msg[2].lower() == "default":
+#										multistream_url = multistream_url_default
+#										print("LOG: Multistream URl reset to default.")
+#										command_irc_send_message("Multistream URL reset to default.")
+#									else:
+#										multistream_url = msg[2].strip()
+#										print("LOG: Multistream URL set to: " + multistream_url)
+#										command_irc_send_message("Multistream URL set to: " + multistream_url)
+#								else:
+#									print("LOG: Unknown usage of !multi.")
+#									command_irc_send_message("Unknown usage of !multi.")
+#							else:
+#								command_irc_send_message("Multistream URL is: " + multistream_url)
+						# Return voice to a user in a timeout or ban
+						elif msg[0] == "!voice" and len(msg) == 2:
+							pardoned_user = msg[1].strip().lower()
+							command_irc_unban(pardoned_user)
 
 					# Commands available to anyone
 					elif msg[0] in public_command_list:
