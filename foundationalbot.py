@@ -50,13 +50,10 @@ from datetime import datetime # date functions for !time command
 
 ### START UP VARIABLES ###
 
-# Rate limit tracker
-messages_sent = 0
-
 # Command listing for all users - comma separated
 public_command_list = [ "!test",
 		"!xbl", "!xb1",
-		"!psn",
+		"!psn", "!ps4",
 		"!steam",
 		"!youtube",
 		"!twitter",
@@ -64,13 +61,13 @@ public_command_list = [ "!test",
 		"!time" ]
 
 # Follower only commands - comma separated
-follower_command_list = []
+#follower_command_list = []
 
 # Subscriber only commands - comma separated
-subscriber_command_list = []
+#subscriber_command_list = []
 
 # Moderator only commands - comma separated
-moderator_command_list = []
+#moderator_command_list = []
 
 # Broadcaster only commands - comma separated
 broadcaster_command_list = [ "!quit", "!exit",
@@ -83,7 +80,7 @@ broadcaster = bot_cfg.channel[1:]
 
 # Twitch limits user messages to 20 messages in 30 seconds. Failure to obey = 8-hr ban.
 # Moderators have an increased limit to 100 messages in 30 seconds.
-# Script will detect below whether it is a mod and just the rate accordingly
+# Script will detect below whether it is a mod and adjust the rate accordingly
 message_rate = (20/30)
 
 ### IRC COMMANDS ###
@@ -129,6 +126,7 @@ user_strike_count = {}
 # Strikeout system implementation
 def add_user_strike(user):
 	if user in user_strike_count or bot_cfg.strikes_until_ban == 1:
+		# If user reaches the strike limit, hand out a ban
 		if user_strike_count[user] == (bot_cfg.strikes_until_ban - 1) or bot_cfg.strikes_until_ban == 1:
 			command_irc_ban(user)
 			print ("LOG: Banned user per strikeout system: " + user)
@@ -138,11 +136,13 @@ def add_user_strike(user):
 			user_strike_count[user] += 1
 			print ("LOG: Additional strike added to: " + user + ". User's strike count is: " + str(user_strike_count[user]))
 
+			# If user has more than half of the allowed strikes, give a longer timeout and message in chat
 			if user_strike_count[user] >= (bot_cfg.strikes_until_ban/2):
 				command_irc_timeout(user, bot_cfg.strikes_timeout_duration)
 				# change this username to display name when that is worked out
 				command_irc_send_message("Warning: " + user + " in timeout for chat rule violation. Please follow the rules." )
-				print ("LOG: User " + user + " silenced per timeout policy.")
+				print ("LOG: User " + user + " silenced per strikeout policy.")
+			# If user does not have many strikes, just clear their messages
 			else:
 				command_irc_timeout(user, 1)
 				print ("LOG: Messages from " + user + " purged.")
@@ -157,8 +157,8 @@ raffle_active = False
 raffle_keyword = None
 
 # Multistream support variables
-multistream_url = "http://kadgar.net/live/" + broadcaster + "/"
-multistream_url_default = multistream_url
+#multistream_url = "http://kadgar.net/live/" + broadcaster + "/"
+#multistream_url_default = multistream_url
 
 # IRC response buffer for connection
 irc_response_buffer = ""
@@ -188,7 +188,7 @@ while connected:
 		irc_response = re.split(r"[~\r\n]+", irc_response_buffer)
 		irc_response_buffer = irc_response.pop()
 
-		# Rate limiter to avoid 8-hr globabl timeout for the bot
+		# Count messages sent as a rate limiter to avoid 8-hr global timeout
 		messages_sent = 0
 
 		# Timestamp
@@ -202,7 +202,7 @@ while connected:
 #				irc.socket.close()
 #				connected = False
 
-			# Twitch's IRC server will check that clients are still alive. Answer with a PONG to confirm connection.
+			# Twitch's IRC server will check that clients are still alive; respond with PONG
 			if message_line == "PING :tmi.twitch.tv":
 				command_irc_ping_respond()
 				print("LOG: Received PING. Sent PONG.")
@@ -212,7 +212,7 @@ while connected:
 # Debug option
 #				print(message_line)
 
-				# Channel message parsing
+				# Channel message parsing - other variables possible if grouping is adjusted
 				parsed_irc_message = irc_message_regex.search(message_line)
 				user_display_name = parsed_irc_message.group(1)
 				user_subscriber_status = parsed_irc_message.group(2)
@@ -223,13 +223,13 @@ while connected:
 
 				print(now_local_logging + ":" + irc_channel + ":" + username + ": " + message)
 
-				# Command Parser - if adding or subtracting commands, remember to adjust the command listings at the top
+				# Command Parser - if changing commands, remember to adjust the command listings at top
 				if message.startswith("!"):
 					msg = message.split(" ")
 					# Force to lowercase for parsing
 					msg[0] = msg[0].lower()
 
-					# Commands only available to privileged users
+					# Commands only available to broadcaster
 					if msg[0] in broadcaster_command_list and username == broadcaster:
 
 						# Shutting down the bot in a clean manner
@@ -276,7 +276,7 @@ while connected:
 									# FIXME use the display name?
 									print("LOG: Raffle winner: " + raffle_winner)
 									# FIXME Win odds assume only 1 ticket entry - fix if subscription ever happens
-									command_irc_send_message("Raffle winner: " + raffle_winner + ". Odds to win were: " + str((1/len(raffle_contestants)*100)) + "%")
+									command_irc_send_message("Raffle winner: " + raffle_winner + ". Each entry's chance was: " + str((1/len(raffle_contestants)*100)) + "%")
 									# Only allow winner to win once per raffle
 									raffle_contestants[:] = (remaining_contestants for remaining_contestants in raffle_contestants if remaining_contestants != raffle_winner)
 						# Supporting multiple streamers
@@ -315,7 +315,7 @@ while connected:
 						# Social media commands
 						elif msg[0] == "!xbl" or msg[0] == "!xb1":
 							command_irc_send_message("Broadcaster's XBL ID is: " + bot_cfg.xbox_handle)
-						elif msg[0] == "!psn":
+						elif msg[0] == "!psn" or msg[0] == "!ps4":
 							command_irc_send_message("Broadcaster's PSN ID is: " + bot_cfg.playstation_handle)
 						elif msg[0] == "!steam":
 							command_irc_send_message("Broadcaster's Steam ID is: " + bot_cfg.steam_handle +  " and profile is: " + bot_cfg.steam_url)
@@ -323,7 +323,7 @@ while connected:
 							command_irc_send_message("Broadcaster's twitter url is: " + bot_cfg.twitter_url)
 						elif msg[0] == "!youtube":
 							command_irc_send_message("Select broadcasts, highlights and other videos may be found on YouTube: " + bot_cfg.youtube_url)
-						# State streamer's (actually bot's) current time and time to next broadcast
+						# State bot's current time and time to next broadcast
 						elif msg[0] == "!schedule":
 							now_local_day = datetime.now().strftime("%A")
 							now_local = datetime.now().strftime("%I:%M%p")
@@ -331,22 +331,22 @@ while connected:
 							command_irc_send_message("Current stream time is: " + now_local_day + " " + now_local + ". Today's schedule is: " + bot_cfg.broadcaster_schedule[now_local_day])
 						elif msg[0] == "!time":
 							now_local = datetime.now().strftime("%A %I:%M%p")
-							command_irc_send_message("Current stream time is: " + now_local)
+							command_irc_send_message("Stream time is: " + now_local)
 
 				# Raffle monitor
 				# Control with a True/False if raffle is active for faster
 				if raffle_active == True:
 					if message.strip() == raffle_keyword and username not in raffle_contestants:
-						# Treat subscribers special by adding a few more chances on their behalf
+						# Treat subscribers special by adding a more chances on their behalf?
 						if user_subscriber_status == 1:
 							for i in range(0,bot_cfg.raffle_subscriber_entries):
 								raffle_contestants.append(username)
-								print("LOG: " + username + " is entry # " + str(len(raffle_contestants)))
+								print("LOG: " + username + " is entry number " + str(len(raffle_contestants)))
 						else:
 							raffle_contestants.append(username)
-							print("LOG: " + username + " is entry # " + str(len(raffle_contestants)))
+							print("LOG: " + username + " is entry number " + str(len(raffle_contestants)))
 
-				# Message monitor. Employ a strikeout system and ban policy.
+				# Message censor. Employ a strikeout system and ban policy.
 				# Control with a True / False if language monitoring is active
 				for language_control_test in language_watchlist.prohibited_words:
 					if re.search(language_control_test, message):
