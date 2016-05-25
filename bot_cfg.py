@@ -9,12 +9,6 @@ bot_handle = "" # must be lowercase
 bot_password = "" # visit http://twitchapps.com/tmi/ to obtain
 channel = "#" # first character is a hashtag
 
-# Twitch limits user messages to 20 messages every 30 seconds. Failure to obey this results in 8-hour ban.
-rate = (20/30)
-# If a moderator of the channel, the limit is 100 messages / 30 seconds
-# Worry about that if a 2/3 second delay ever becomes an issue.
-# This needs to be balanced with actions that send multiple commands to the IRC server
-
 # Stream Schedule
 broadcaster_schedule = { "Monday" : "abc",
                         "Tuesday" : "def",

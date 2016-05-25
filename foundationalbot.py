@@ -25,7 +25,6 @@
 # ToDo:
 # Add timestamp to self-generated messages - write log function to use for messaging - debug module can do it?
 # Timestamp chat messages too?
-# Test if bot is a moderator and set rate that way prior to starting message processing
 # Build parser loop into a function
 # finish !schedule support - will need pytz installed (3rd party) or forget timezones altogether?
 # Twitter integration?
@@ -81,6 +80,11 @@ broadcaster_command_list = [ "!quit", "!exit",
 
 # Channel name is based on broadcaster's name, so use it to determine broadcaster
 broadcaster = bot_cfg.channel[1:]
+
+# Twitch limits user messages to 20 messages in 30 seconds. Failure to obey = 8-hr ban.
+# Moderators have an increased limit to 100 messages in 30 seconds.
+# Script will detect below whether it is a mod and just the rate accordingly
+message_rate = (20/30)
 
 ### IRC COMMANDS ###
 
@@ -358,6 +362,15 @@ while connected:
 					add_user_strike(username)
 					print ("LOG: " + username + " earned a timeout for a message in all capitals. Strike added.")
 
+			# Monitor MODE messages to detect if bot gains or loses moderator status
+			elif re.search(r" MODE ", message_line):
+				if "#" + bot_cfg.channel + " +o " + bot_cfg.bot_handle in message_line:
+					print("LOG: Bot gained mod status. Adjusting message rate.")
+					message_rate = (100/30)
+				elif "#" + bot_cfg.channel + " -o " + bot_cfg.bot_handle in message_line:
+					print("LOG: Bot lost mod status. Adjusting message rate.")
+					message_rate = (20/30)
+
 			# Drop messages of users PARTing, the user status messages in the specific channel (USERSTATE), the bot's GLOBALUSERSTATE, and users JOINing the channel
 			elif re.search(r" PART ", message_line) or \
 			re.search(r" USERSTATE ", message_line) or \
@@ -370,7 +383,7 @@ while connected:
 				print(message_line)
 
 			# Rate control on sending messages
-			sleep((1 / bot_cfg.rate) * messages_sent)
+			sleep((1 / message_rate) * messages_sent)
 
 	except socket.error:
 		print("ERROR: Socket died")
