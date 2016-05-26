@@ -37,7 +37,8 @@
 # Timed messages to channel - youtube, twitter, ?
 # Add a reset command - resets raffle settings, multi settings, and clears strikeout list
 # Shoutout command?
-# Teach bot to change stream title - need editor status
+# Build an SQLite DB interface to track: username, displayname, strikes, currency(?)
+# Stream info commands: uptime, followers, viewers, set status, set game
 
 import bot_cfg # Bot's config file
 import language_watchlist # Bot's file for monitoring language to take action on
@@ -169,19 +170,41 @@ irc_response_buffer = ""
 try:
 	irc_socket = socket.socket()
 	irc_socket.connect((bot_cfg.host_server, bot_cfg.host_port))
-	irc_socket.send("CAP REQ :twitch.tv/tags twitch.tv/commands twitch.tv/membership\r\n".encode("utf-8"))
 	irc_socket.send("PASS {}\r\n".format(bot_cfg.bot_password).encode("utf-8"))
 	irc_socket.send("NICK {}\r\n".format(bot_cfg.bot_handle).encode("utf-8"))
 	irc_socket.send("JOIN {}\r\n".format(bot_cfg.channel).encode("utf-8"))
-	connected = True
+	initial_connection = True
 except Exception as err_msg:
 	print(str(err_msg))
-	connected = False
+	initial_connection = False
+
+# Initial login messages
+# FIXME potential unbound while loop; implement a timer to abort?
+while initial_connection:
+	irc_response_buffer = irc_response_buffer + irc_socket.recv(1024).decode("utf-8")
+	irc_response = re.split(r"[~\r\n]+", irc_response_buffer)
+	irc_response_buffer = irc_response.pop()
+
+	for message_line in irc_response:
+		# Connected to Twitch IRC server but failed to login (bad user/pass)
+		if ":tmi.twitch.tv NOTICE * :Login unsuccessful" in message_line:
+			print(message_line)
+			active_connection = False
+			initial_connection = False
+		# Last line of a successful login to Twitch
+		elif ":tmi.twitch.tv 376 {} :>".format(bot_cfg.bot_handle) in message_line:
+			print(message_line)
+			# Tell Twitch we want all the messaging metadata instead of plain IRC messages
+			irc_socket.send("CAP REQ :twitch.tv/tags twitch.tv/commands twitch.tv/membership\r\n".encode("utf-8"))
+			active_connection = True
+			initial_connection = False
+		else:
+			print(message_line)
 
 ### LOOP THROUGH MESSAGES FROM SERVER TO TAKE ACTION ###
 
 # Main parser
-while connected:
+while active_connection:
 	try:
 		# Messages being received from the IRC server stored in a buffer in case of incomplete messages
 		irc_response_buffer = irc_response_buffer + irc_socket.recv(1024).decode("utf-8")
@@ -195,12 +218,6 @@ while connected:
 		now_local_logging = datetime.now().strftime("%Y%m%d %H:%M:%S")
 
 		for message_line in irc_response:
-
-			# FIXME Failed login? Stop work. - test this up above? how? - below doesn't work
-#			if message_line == "tmi: :tmi.twitch.tv NOTICE * :Error logging in":
-#				print("ERROR: Failed to login to server.")
-#				irc.socket.close()
-#				connected = False
 
 			# Twitch's IRC server will check that clients are still alive; respond with PONG
 			if message_line == "PING :tmi.twitch.tv":
@@ -238,7 +255,7 @@ while connected:
 							command_irc_send_message("Systems shutting down.")
 							command_irc_quit()
 							irc_socket.close()
-							connected = False
+							active_connection = False
 							break
 						# Raffle support commands
 						elif msg[0] == "!raffle" and len(msg) > 1:
@@ -376,11 +393,17 @@ while connected:
 					print("LOG: Bot lost mod status. Adjusting message rate.")
 					message_rate = (20/30)
 
-			# Drop messages of users PARTing, the user status messages in the specific channel (USERSTATE), the bot's GLOBALUSERSTATE, and users JOINing the channel
-			elif re.search(r" PART ", message_line) or \
-			re.search(r" USERSTATE ", message_line) or \
-			re.search(r" GLOBALUSERSTATE", message_line) or \
-			re.search(r" JOIN ", message_line):
+			elif re.search(r" JOIN ", message_line):
+				print(message_line)
+				break
+
+#			elif re.search(r" PART ", message_line):
+#				print(message_line)
+#				break
+
+			# Drop user status messages in the specific channel (USERSTATE), and the bot's GLOBALUSERSTATE
+			elif re.search(r" USERSTATE ", message_line) or \
+			re.search(r" GLOBALUSERSTATE", message_line):
 				break
 
 			# Not a channel message covered elsewhere
