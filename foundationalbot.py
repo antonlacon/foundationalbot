@@ -267,6 +267,11 @@ while connected:
 								raffle_active = False
 								print("LOG: Raffle closed to further entries.")
 								command_irc_send_message("Raffle closed to further entries.")
+							# Reopens raffle to entries
+							elif msg[1] == "reopen":
+								raffle_active = True
+								print("LOG: Raffle reopened for entries.")
+								command_irc_send_message("Raffle reopened.")
 							# Selecting a winner from the pool
 							elif msg[1] == "winner":
 								if len(raffle_contestants) == 0:
