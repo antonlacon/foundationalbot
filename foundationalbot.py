@@ -39,6 +39,7 @@
 # Shoutout command?
 # Build an SQLite DB interface to track: username, displayname, strikes, currency(?)
 # Stream info commands: uptime, followers, viewers, set status, set game
+# Pull the command parser out of the main loop parser
 
 import bot_cfg # Bot's config file
 import language_watchlist # Bot's file for monitoring language to take action on
@@ -153,9 +154,9 @@ def add_user_strike(user):
 		print ("LOG: User added to strike list: " + user)
 
 # Raffle support variables
-raffle_contestants = []
 raffle_active = False
 raffle_keyword = None
+raffle_contestants = []
 
 # Multistream support variables
 #multistream_url = "http://kadgar.net/live/" + broadcaster + "/"
@@ -164,48 +165,23 @@ raffle_keyword = None
 # IRC response buffer for connection
 irc_response_buffer = ""
 
-### START EXTERNAL CONNECTION ###
+### PARSER LOOP FUNCTION ###
 
-# Connect to Twitch and enter chosen channel
-try:
-	irc_socket = socket.socket()
-	irc_socket.connect((bot_cfg.host_server, bot_cfg.host_port))
-	irc_socket.send("PASS {}\r\n".format(bot_cfg.bot_password).encode("utf-8"))
-	irc_socket.send("NICK {}\r\n".format(bot_cfg.bot_handle).encode("utf-8"))
-	irc_socket.send("JOIN {}\r\n".format(bot_cfg.channel).encode("utf-8"))
-	initial_connection = True
-except Exception as err_msg:
-	print(str(err_msg))
-	initial_connection = False
+# Implement the main parser loop from which IRC messages are understood
+def main_parser_loop():
+	# Variables declared outside the function that will change inside the function
+	global active_connection
+	global irc_response_buffer
+	global message_rate
+	global messages_sent
+	global user_strike_count
+	global raffle_active
+	global raffle_keyword
+	global raffle_contestants
 
-# Initial login messages
-# FIXME potential unbound while loop; implement a timer to abort?
-while initial_connection:
-	irc_response_buffer = irc_response_buffer + irc_socket.recv(1024).decode("utf-8")
-	irc_response = re.split(r"[~\r\n]+", irc_response_buffer)
-	irc_response_buffer = irc_response.pop()
+	# Parser loop
+	while active_connection:
 
-	for message_line in irc_response:
-		# Connected to Twitch IRC server but failed to login (bad user/pass)
-		if ":tmi.twitch.tv NOTICE * :Login unsuccessful" in message_line:
-			print(message_line)
-			active_connection = False
-			initial_connection = False
-		# Last line of a successful login to Twitch
-		elif ":tmi.twitch.tv 376 {} :>".format(bot_cfg.bot_handle) in message_line:
-			print(message_line)
-			# Tell Twitch we want all the messaging metadata instead of plain IRC messages
-			irc_socket.send("CAP REQ :twitch.tv/tags twitch.tv/commands twitch.tv/membership\r\n".encode("utf-8"))
-			active_connection = True
-			initial_connection = False
-		else:
-			print(message_line)
-
-### LOOP THROUGH MESSAGES FROM SERVER TO TAKE ACTION ###
-
-# Main parser
-while active_connection:
-	try:
 		# Messages being received from the IRC server stored in a buffer in case of incomplete messages
 		irc_response_buffer = irc_response_buffer + irc_socket.recv(1024).decode("utf-8")
 		irc_response = re.split(r"[~\r\n]+", irc_response_buffer)
@@ -318,7 +294,7 @@ while active_connection:
 #										multistream_url = msg[2].strip()
 #										print("LOG: Multistream URL set to: " + multistream_url)
 #										command_irc_send_message("Multistream URL set to: " + multistream_url)
-#								else:
+	#							else:
 #									print("LOG: Unknown usage of !multi.")
 #									command_irc_send_message("Unknown usage of !multi.")
 #							else:
@@ -393,9 +369,9 @@ while active_connection:
 					print("LOG: Bot lost mod status. Adjusting message rate.")
 					message_rate = (20/30)
 
-			elif re.search(r" JOIN ", message_line):
-				print(message_line)
-				break
+#			elif re.search(r" JOIN ", message_line):
+#				print(message_line)
+#				break
 
 #			elif re.search(r" PART ", message_line):
 #				print(message_line)
@@ -403,24 +379,59 @@ while active_connection:
 
 			# Drop user status messages in the specific channel (USERSTATE), and the bot's GLOBALUSERSTATE
 			elif re.search(r" USERSTATE ", message_line) or \
-			re.search(r" GLOBALUSERSTATE", message_line):
+			re.search(r" GLOBALUSERSTATE ", message_line):
 				break
 
-			# Not a channel message covered elsewhere
+			# Not an IRC message covered elsewhere
 			else:
 				print(message_line)
 
 			# Rate control on sending messages
 			sleep((1 / message_rate) * messages_sent)
 
-	except socket.error:
-		print("ERROR: Socket died")
+### MAIN ###
 
-	except socket.timeout:
-		print("ERROR: Socket timeout")
+if __name__ == "__main__":
 
-#if __name__ == "__main__":
-# build loop into a function
+### START EXTERNAL CONNECTION ###
 
-# Loop broken; time to exit.
-exit(0)
+	# Connect to Twitch and enter chosen channel
+	try:
+		irc_socket = socket.socket()
+		irc_socket.connect((bot_cfg.host_server, bot_cfg.host_port))
+		irc_socket.send("PASS {}\r\n".format(bot_cfg.bot_password).encode("utf-8"))
+		irc_socket.send("NICK {}\r\n".format(bot_cfg.bot_handle).encode("utf-8"))
+		irc_socket.send("JOIN {}\r\n".format(bot_cfg.channel).encode("utf-8"))
+		initial_connection = True
+	except Exception as err_msg:
+		print(str(err_msg))
+		initial_connection = False
+
+	# Initial login messages
+	# FIXME potential unbound while loop; implement a timer to abort?
+	while initial_connection:
+		irc_response_buffer = irc_response_buffer + irc_socket.recv(1024).decode("utf-8")
+		irc_response = re.split(r"[~\r\n]+", irc_response_buffer)
+		irc_response_buffer = irc_response.pop()
+
+		for message_line in irc_response:
+			# Connected to Twitch IRC server but failed to login (bad user/pass)
+			if ":tmi.twitch.tv NOTICE * :Login unsuccessful" in message_line:
+				print(message_line)
+				active_connection = False
+				initial_connection = False
+			# Last line of a successful login to Twitch
+			elif ":tmi.twitch.tv 376 {} :>".format(bot_cfg.bot_handle) in message_line:
+				print(message_line)
+				# Tell Twitch we want all the messaging metadata instead of plain IRC messages
+				irc_socket.send("CAP REQ :twitch.tv/tags twitch.tv/commands twitch.tv/membership\r\n".encode("utf-8"))
+				active_connection = True
+				initial_connection = False
+			else:
+				print(message_line)
+
+### LOOP THROUGH MESSAGES FROM SERVER TO TAKE ACTION ###
+	main_parser_loop()
+
+	# Loop broken; time to exit
+	exit(0)
