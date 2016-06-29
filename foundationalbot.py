@@ -25,7 +25,6 @@
 # ToDo:
 # Add timestamp to self-generated messages - write log function to use for messaging - debug module can do it?
 # Timestamp chat messages too?
-# Build parser loop into a function
 # finish !schedule support - will need pytz installed (3rd party) or forget timezones altogether?
 # Twitter integration?
 # Teach bot to send a whisper - Postponed til Whispers 2.0
@@ -33,22 +32,21 @@
 # See what happens if the raffle keyword is set to None
 # Add website whitelisting - youtube, twitch, wikipedia, ?
 # If raffle is active, format the winner's username differently so it'll be seen in terminal log
-# Build raffle for subs only - Get partnered first
+# Have raffles show subscriber status if that's the case - how long they have followed?
 # Timed messages to channel - youtube, twitter, ?
 # Add a reset command - resets raffle settings, multi settings, and clears strikeout list
-# Shoutout command?
-# Build an SQLite DB interface to track: username, displayname, strikes, currency(?)
+# Build an SQLite DB interface to track: username, displayname, strikes, chat currency(?)
 # Stream info commands: uptime, followers, viewers, set status, set game
 # Pull the command parser out of the main loop parser
 
-import bot_cfg # Bot's config file
-import language_watchlist # Bot's file for monitoring language to take action on
-import socket # IRC networking
-import re # Regular Expression parsing to understand chat messages
-import random # Random number generator for raffle support
-from time import sleep # sleep() command
-from sys import exit # exit() command
-from datetime import datetime # date functions for !time command
+import bot_cfg 			# Bot's config file
+import language_watchlist 	# Bot's file for monitoring language to take action on
+import socket 			# IRC networking
+import re 			# Regular expression parsing to parse chat messages
+import random 			# Random number generator for raffle
+from time import sleep 		# sleep() command
+from sys import exit 		# exit() command
+from datetime import datetime 	# date functions
 
 ### START UP VARIABLES ###
 
@@ -165,6 +163,10 @@ raffle_contestants = []
 # IRC response buffer for connection
 irc_response_buffer = ""
 
+### COMMAND PARSER FUNCTION ###
+def command_parser():
+	continue
+
 ### PARSER LOOP FUNCTION ###
 
 # Implement the main parser loop from which IRC messages are understood
@@ -218,6 +220,7 @@ def main_parser_loop():
 
 				# Command Parser - if changing commands, remember to adjust the command listings at top
 				if message.startswith("!"):
+					# FIXME turn this into a command parser
 					msg = message.split(" ")
 					# Force to lowercase for parsing
 					msg[0] = msg[0].lower()
@@ -335,7 +338,9 @@ def main_parser_loop():
 				# Control with a True/False if raffle is active for faster
 				if raffle_active == True:
 					if message.strip() == raffle_keyword and username not in raffle_contestants:
-						# Treat subscribers special by adding a more chances on their behalf?
+						# Treat subscribers special by adding a more chances on their behalf
+						# FIXME rewrite this to check if user is a subscriber and print that they are to the log
+						# Remove ability of subscribers to get bonus chances - gambling regulation?
 						if user_subscriber_status == 1:
 							for i in range(0,bot_cfg.raffle_subscriber_entries):
 								raffle_contestants.append(username)
@@ -351,9 +356,6 @@ def main_parser_loop():
 
 						add_user_strike(username)
 						print ("LOG: " + username +" earned a strike for violating the language watchlist.")
-
-						# Only need one violation per message, so stop searching when one is found
-						break
 
 				# Messages longer than a set length in all uppercase count as a strike
 				if len(message) >= bot_cfg.uppercase_message_suppress_length and message == message.upper():
