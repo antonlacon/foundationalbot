@@ -42,7 +42,3 @@ strikes_timeout_duration = 600
 
 # Suppress messages in all uppercase letters with at least this many characters:
 uppercase_message_suppress_length = 20
-
-# Raffle settings
-# Have subscribers count as this many entries when they enter a raffle pool
-raffle_subscriber_entries=5
