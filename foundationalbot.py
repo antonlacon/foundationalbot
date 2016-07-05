@@ -276,7 +276,6 @@ def main_parser_loop():
 									raffle_winner = raffle_contestants[random.randrange(0,len(raffle_contestants),1)]
 									# FIXME use the display name?
 									print("LOG: Raffle winner: " + raffle_winner)
-									# FIXME Win odds assume only 1 ticket entry - fix if subscription ever happens
 									command_irc_send_message("Raffle winner: " + raffle_winner + ". Each entry's chance was: " + str((1/len(raffle_contestants)*100)) + "%")
 									# Only allow winner to win once per raffle
 									raffle_contestants[:] = (remaining_contestants for remaining_contestants in raffle_contestants if remaining_contestants != raffle_winner)
@@ -338,16 +337,8 @@ def main_parser_loop():
 				# Control with a True/False if raffle is active for faster
 				if raffle_active == True:
 					if message.strip() == raffle_keyword and username not in raffle_contestants:
-						# Treat subscribers special by adding a more chances on their behalf
-						# FIXME rewrite this to check if user is a subscriber and print that they are to the log
-						# Remove ability of subscribers to get bonus chances - gambling regulation?
-						if user_subscriber_status == 1:
-							for i in range(0,bot_cfg.raffle_subscriber_entries):
-								raffle_contestants.append(username)
-								print("LOG: " + username + " is entry number " + str(len(raffle_contestants)))
-						else:
-							raffle_contestants.append(username)
-							print("LOG: " + username + " is entry number " + str(len(raffle_contestants)))
+						raffle_contestants.append(username)
+						print("LOG: " + username + " is entry number " + str(len(raffle_contestants)))
 
 				# Message censor. Employ a strikeout system and ban policy.
 				# Control with a True / False if language monitoring is active
