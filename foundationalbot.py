@@ -29,24 +29,26 @@
 # Twitter integration?
 # Teach bot to send a whisper - Postponed til Whispers 2.0
 # Teach bot to receive a whisper - Postponed til Whispers 2.0
-# See what happens if the raffle keyword is set to None
 # Add website whitelisting - youtube, twitch, wikipedia, ?
 # If raffle is active, format the winner's username differently so it'll be seen in terminal log
 # Have raffles show subscriber status if that's the case - how long they have followed?
 # Timed messages to channel - youtube, twitter, ?
 # Add a reset command - resets raffle settings, multi settings, and clears strikeout list
 # Build an SQLite DB interface to track: username, displayname, strikes, chat currency(?)
-# Stream info commands: uptime, followers, viewers, set status, set game
+# Stream info commands: uptime, followers, viewers, set status, set game - needs twitch api hookup
 # Pull the command parser out of the main loop parser
+# Clean up where variables are declared
 
-import bot_cfg 			# Bot's config file
-import language_watchlist 	# Bot's file for monitoring language to take action on
+# Core Modules
 import socket 			# IRC networking
 import re 			# Regular expression parsing to parse chat messages
 import random 			# Random number generator for raffle
 from time import sleep 		# sleep() command
 from sys import exit 		# exit() command
 from datetime import datetime 	# date functions
+# Project Modules
+import bot_cfg 			# Bot's config file
+import language_watchlist 	# Bot's file for monitoring language to take action on
 
 ### START UP VARIABLES ###
 
@@ -69,9 +71,13 @@ public_command_list = [ "!test",
 # Moderator only commands - comma separated
 #moderator_command_list = []
 
+# Editor only commands - comma separated
+#editor_command_list = []
+
 # Broadcaster only commands - comma separated
 broadcaster_command_list = [ "!quit", "!exit",
 				"!raffle",
+				"!reconnect",
 				"!voice" ]
 #				"!multi",
 
@@ -112,8 +118,11 @@ def command_irc_ping_respond():
 # Exit IRC channel
 def command_irc_quit():
 	global messages_sent
+	global messages_rate
+	command_irc_send_message("Shutting down.")
 	irc_socket.send("PART {}\r\n".format(bot_cfg.channel).encode("utf-8"))
 	messages_sent += 1
+	sleep((1/message_rate) * messages_sent)
 
 ### PARSING VARIABLES AND SUPPORT FUNCTIONS ###
 
@@ -160,12 +169,57 @@ raffle_contestants = []
 #multistream_url = "http://kadgar.net/live/" + broadcaster + "/"
 #multistream_url_default = multistream_url
 
-# IRC response buffer for connection
+# IRC response buffer (incoming messages)
 irc_response_buffer = ""
 
+### INITIALIZE IRC CONNECTION FUNCTION ###
+def initialize_irc_connection():
+
+	global active_connection
+	global irc_response_buffer
+	global irc_socket
+	initial_connection = False
+
+	# Connect to Twitch and enter chosen channel
+	try:
+		irc_socket = socket.socket()
+		irc_socket.connect((bot_cfg.host_server, bot_cfg.host_port))
+		irc_socket.send("PASS {}\r\n".format(bot_cfg.bot_password).encode("utf-8"))
+		irc_socket.send("NICK {}\r\n".format(bot_cfg.bot_handle).encode("utf-8"))
+		# Future note: 50 channels may be JOINed every 15 seconds
+		irc_socket.send("JOIN {}\r\n".format(bot_cfg.channel).encode("utf-8"))
+		initial_connection = True
+	except:
+		raise
+
+	# Initial login messages
+	# FIXME potential unbound while loop; count number of expected messages and abort if it's reached without connecting?
+	while initial_connection:
+		irc_response_buffer = irc_response_buffer + irc_socket.recv(1024).decode("utf-8")
+		irc_response = re.split(r"[~\r\n]+", irc_response_buffer)
+		irc_response_buffer = irc_response.pop()
+
+		for message_line in irc_response:
+			# Connected to Twitch IRC server but failed to login (bad user/pass)
+			if ":tmi.twitch.tv NOTICE * :Login unsuccessful" in message_line:
+				print(message_line)
+				active_connection = False
+				initial_connection = False
+			# Last line of a successful login to Twitch
+			elif ":tmi.twitch.tv 376 {} :>".format(bot_cfg.bot_handle) in message_line:
+				print(message_line)
+				# Tell Twitch to send full messaging metadata and not plain IRC messages
+				irc_socket.send("CAP REQ :twitch.tv/tags twitch.tv/commands twitch.tv/membership\r\n".encode("utf-8"))
+				active_connection = True
+				initial_connection = False
+			else:
+				print(message_line)
+	# pause for rate limiter and the number of messages sent in login process
+	sleep((1 / message_rate) * 4)
+
 ### COMMAND PARSER FUNCTION ###
-def command_parser():
-	continue
+#def command_parser():
+#	continue
 
 ### PARSER LOOP FUNCTION ###
 
@@ -173,6 +227,7 @@ def command_parser():
 def main_parser_loop():
 	# Variables declared outside the function that will change inside the function
 	global active_connection
+	global bot_active
 	global irc_response_buffer
 	global message_rate
 	global messages_sent
@@ -230,12 +285,17 @@ def main_parser_loop():
 
 						# Shutting down the bot in a clean manner
 						if msg[0] == "!quit" or msg[0] == "!exit":
-							print("LOG: Closing IRC connection based on chat message from: " + username)
-							command_irc_send_message("Systems shutting down.")
+							print("LOG: Shutting down on commnd from: " + username)
 							command_irc_quit()
 							irc_socket.close()
 							active_connection = False
-							break
+							bot_active = False
+						# Tell bot to quit and reconnect - for test purposes
+						if msg[0] == "!reconnect":
+							print("LOG: Reconnecting to IRC server on command from: " + username)
+							command_irc_quit()
+							irc_socket.close()
+							active_connection = False
 						# Raffle support commands
 						elif msg[0] == "!raffle" and len(msg) > 1:
 							msg[1] = msg[1].strip().lower()
@@ -276,7 +336,7 @@ def main_parser_loop():
 									raffle_winner = raffle_contestants[random.randrange(0,len(raffle_contestants),1)]
 									# FIXME use the display name?
 									print("LOG: Raffle winner: " + raffle_winner)
-									command_irc_send_message("Raffle winner: " + raffle_winner + ". Each entry's chance was: " + str((1/len(raffle_contestants)*100)) + "%")
+									command_irc_send_message("Raffle winner: " + raffle_winner + ". Winner's chance was: " + str((1/len(raffle_contestants)*100)) + "%")
 									# Only allow winner to win once per raffle
 									raffle_contestants[:] = (remaining_contestants for remaining_contestants in raffle_contestants if remaining_contestants != raffle_winner)
 						# Supporting multiple streamers
@@ -362,6 +422,13 @@ def main_parser_loop():
 					print("LOG: Bot lost mod status. Adjusting message rate.")
 					message_rate = (20/30)
 
+			# Handle requests to reconnect to the chat servers from Twitch
+			elif re.search(r" RECONNECT ", message_line):
+				print("LOG: Reconnecting to server based on message from server.")
+				command_irc_quit()
+				irc_socket.close()
+				active_connection = False
+
 #			elif re.search(r" JOIN ", message_line):
 #				print(message_line)
 #				break
@@ -383,48 +450,21 @@ def main_parser_loop():
 			sleep((1 / message_rate) * messages_sent)
 
 ### MAIN ###
-
 if __name__ == "__main__":
 
-### START EXTERNAL CONNECTION ###
+	# bot_active controls whether the bot should shut down all activities and exit
+	# intial_connection puts the bot in the startup login phase
+	# active_connection makes the main parser loop active going through server messages
 
-	# Connect to Twitch and enter chosen channel
-	try:
-		irc_socket = socket.socket()
-		irc_socket.connect((bot_cfg.host_server, bot_cfg.host_port))
-		irc_socket.send("PASS {}\r\n".format(bot_cfg.bot_password).encode("utf-8"))
-		irc_socket.send("NICK {}\r\n".format(bot_cfg.bot_handle).encode("utf-8"))
-		irc_socket.send("JOIN {}\r\n".format(bot_cfg.channel).encode("utf-8"))
-		initial_connection = True
-	except Exception as err_msg:
-		print(str(err_msg))
-		initial_connection = False
+	bot_active = True
 
-	# Initial login messages
-	# FIXME potential unbound while loop; implement a timer to abort?
-	while initial_connection:
-		irc_response_buffer = irc_response_buffer + irc_socket.recv(1024).decode("utf-8")
-		irc_response = re.split(r"[~\r\n]+", irc_response_buffer)
-		irc_response_buffer = irc_response.pop()
+	while bot_active:
 
-		for message_line in irc_response:
-			# Connected to Twitch IRC server but failed to login (bad user/pass)
-			if ":tmi.twitch.tv NOTICE * :Login unsuccessful" in message_line:
-				print(message_line)
-				active_connection = False
-				initial_connection = False
-			# Last line of a successful login to Twitch
-			elif ":tmi.twitch.tv 376 {} :>".format(bot_cfg.bot_handle) in message_line:
-				print(message_line)
-				# Tell Twitch we want all the messaging metadata instead of plain IRC messages
-				irc_socket.send("CAP REQ :twitch.tv/tags twitch.tv/commands twitch.tv/membership\r\n".encode("utf-8"))
-				active_connection = True
-				initial_connection = False
-			else:
-				print(message_line)
+		### START EXTERNAL CONNECTION ###
+		initialize_irc_connection()
 
-### LOOP THROUGH MESSAGES FROM SERVER TO TAKE ACTION ###
-	main_parser_loop()
+		### LOOP THROUGH MESSAGES FROM SERVER TO TAKE ACTION ###
+		main_parser_loop()
 
 	# Loop broken; time to exit
 	exit(0)
