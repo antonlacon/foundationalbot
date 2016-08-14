@@ -26,15 +26,14 @@
 # Add timestamp to self-generated messages - write log function to use for messaging - debug module can do it?
 # Timestamp chat messages too?
 # finish !schedule support - will need pytz installed (3rd party) or forget timezones altogether?
-# Twitter integration?
+# Twitter integration? - Twitch website has done this?
 # Teach bot to send a whisper - Postponed til Whispers 2.0
-# Teach bot to receive a whisper - Postponed til Whispers 2.0
+# Teach bot to read a whisper - Postponed til Whispers 2.0
 # Add website whitelisting - youtube, twitch, wikipedia, ?
 # If raffle is active, format the winner's username differently so it'll be seen in terminal log
 # Have raffles show subscriber status if that's the case - how long they have followed?
 # Timed messages to channel - youtube, twitter, ?
 # Add a reset command - resets raffle settings, multi settings, and clears strikeout list
-# Build an SQLite DB interface to track: username, displayname, strikes, chat currency(?)
 # Stream info commands: uptime, followers, viewers, set status, set game - needs twitch api hookup
 # Pull the command parser out of the main loop parser
 # Clean up where variables are declared
@@ -49,6 +48,7 @@ from datetime import datetime 	# date functions
 # Project Modules
 import bot_cfg 			# Bot's config file
 import language_watchlist 	# Bot's file for monitoring language to take action on
+import fb_sql			# SQLite database interaction
 
 ### START UP VARIABLES ###
 
@@ -128,37 +128,39 @@ def command_irc_quit():
 
 # Regular expressions that will be used frequently so build the regex once to quickly retrieve, use grouping to reuse
 irc_message_regex = re.compile(r"^@badges=[a-zA-Z0-9_\/]*;color=[#a-fA-F0-9]*;display-name=([a-zA-Z0-9_\-]*);emotes=[a-zA-Z0-9\-:\/,]*;id=[a-f0-9\-]*;mod=\d+;room-id=\d+;subscriber=(\d+);turbo=\d+;user-id=\d+;user-type=(\w*) :(\w+)!\w+@\w+\.tmi\.twitch\.tv PRIVMSG (#\w+) :")
-
-# User Strike List to monitor banning
-user_strike_count = {}
+irc_join_regex = re.compile(r"^:\w+!(\w+)@\w+\.tmi\.twitch\.tv JOIN #\w+")
 
 # Strikeout system implementation
-def add_user_strike(user):
-	if user in user_strike_count or bot_cfg.strikes_until_ban == 1:
-		# If user reaches the strike limit, hand out a ban
-		if user_strike_count[user] == (bot_cfg.strikes_until_ban - 1) or bot_cfg.strikes_until_ban == 1:
-			command_irc_ban(user)
-			print ("LOG: Banned user per strikeout system: " + user)
-			command_irc_send_message(user + " banned per strikeout system.")
-			del user_strike_count[user]
-		else:
-			user_strike_count[user] += 1
-			print ("LOG: Additional strike added to: " + user + ". User's strike count is: " + str(user_strike_count[user]))
+def add_user_strike(db_action, user):
+	user_displayname = fb_sql.db_vt_show_displayname(db_action, user)
+	user_strike_count = fb_sql.db_vt_show_strikes(db_action, user)
+	# hand out the strike and check effects
+	user_strike_count += 1
 
-			# If user has more than half of the allowed strikes, give a longer timeout and message in chat
-			if user_strike_count[user] >= (bot_cfg.strikes_until_ban/2):
-				command_irc_timeout(user, bot_cfg.strikes_timeout_duration)
-				# change this username to display name when that is worked out
-				command_irc_send_message("Warning: " + user + " in timeout for chat rule violation. Please follow the rules." )
-				print ("LOG: User " + user + " silenced per strikeout policy.")
-			# If user does not have many strikes, just clear their messages
-			else:
-				command_irc_timeout(user, 1)
-				print ("LOG: Messages from " + user + " purged.")
+	# If user reaches the strike limit, hand out a ban
+	if user_strike_count == bot_cfg.strikes_until_ban:
+		command_irc_ban(user)
+		print ("LOG: Banned user per strikeout system: " + user)
+		command_irc_send_message(user_displayname + " banned per strikeout system.")
+		# Delete user from database
+		# TODO: make this a maintenance action instead?
+		fb_sql.db_vt_delete_user(db_action, user)
 	else:
-		user_strike_count[user] = 1
-		command_irc_timeout(user, bot_cfg.strikes_timeout_duration)
-		print ("LOG: User added to strike list: " + user)
+		# Write updated strike count to database
+		fb_sql.db_vt_change_strikes(db_action, user)
+		print ("LOG: Additional strike added to: " + user + ". User's strike count is: " + str(user_strike_count))
+
+		# If user exceeded half of the allowed strikes, give a longer timeout and message in chat
+		if user_strike_count >= (bot_cfg.strikes_until_ban/2):
+			command_irc_timeout(user, bot_cfg.strikes_timeout_duration)
+			# TODO state how long timeout is in minutes
+			command_irc_send_message("Warning: " + user_displayname + " in timeout for chat rule violation." )
+			print ("LOG: User " + user + " silenced per strikeout policy.")
+		# If user does not have many strikes, clear message(s) and warn
+		else:
+			command_irc_timeout(user, 1)
+			command_irc_send_message("Warning: " + user_displayname + " messages purged for chat rule violation." )
+			print ("LOG: Messages from " + user + " purged.")
 
 # Raffle support variables
 raffle_active = False
@@ -219,12 +221,12 @@ def initialize_irc_connection():
 
 ### COMMAND PARSER FUNCTION ###
 #def command_parser():
-#	continue
+#	pass
 
 ### PARSER LOOP FUNCTION ###
 
 # Implement the main parser loop from which IRC messages are understood
-def main_parser_loop():
+def main_parser_loop(db_action):
 	# Variables declared outside the function that will change inside the function
 	global active_connection
 	global bot_active
@@ -252,7 +254,7 @@ def main_parser_loop():
 
 		for message_line in irc_response:
 
-			# Twitch's IRC server will check that clients are still alive; respond with PONG
+			# Twitch will check that clients are still alive; respond with PONG
 			if message_line == "PING :tmi.twitch.tv":
 				command_irc_ping_respond()
 				print("LOG: Received PING. Sent PONG.")
@@ -272,6 +274,13 @@ def main_parser_loop():
 				message = irc_message_regex.sub("", message_line)
 
 				print(now_local_logging + ":" + irc_channel + ":" + username + ": " + message)
+
+				# Add username to database in case message sent before JOIN message
+				if fb_sql.db_vt_test_username(db_action, username) == False:
+					fb_sql.db_vt_addentry(db_action, username, user_display_name)
+				# Viewer may have been added to DB by JOIN message, or changed their displayname; update it
+				elif user_display_name != fb_sql.db_vt_show_displayname(db_action, username):
+					fb_sql.db_vt_change_displayname(db_action, username, user_display_name)
 
 				# Command Parser - if changing commands, remember to adjust the command listings at top
 				if message.startswith("!"):
@@ -310,12 +319,12 @@ def main_parser_loop():
 								print("LOG: Raffle entries cleared.")
 								raffle_contestants.clear()
 								raffle_winner = None
+								raffle_winner_displayname = None
 								raffle_keyword = None
 								raffle_active = False
 								command_irc_send_message("Raffle settings and contestant entries cleared.")
 							# Announce number of entries in pool
 							elif msg[1] == "count":
-								# FIXME Needs to differentiate unique users and entries in the case of subscribers?
 								print("LOG: Raffle participants: " + str(len(raffle_contestants)))
 								command_irc_send_message("Raffle contestants: " + str(len(raffle_contestants)))
 							# Closing raffle to new entries
@@ -334,9 +343,9 @@ def main_parser_loop():
 									command_irc_send_message("No winners available; raffle pool is empty.")
 								else:
 									raffle_winner = raffle_contestants[random.randrange(0,len(raffle_contestants),1)]
-									# FIXME use the display name?
+									raffle_winner_displayname = fb_sql.db_vt_show_displayname(db_action, raffle_winner)
 									print("LOG: Raffle winner: " + raffle_winner)
-									command_irc_send_message("Raffle winner: " + raffle_winner + ". Winner's chance was: " + str((1/len(raffle_contestants)*100)) + "%")
+									command_irc_send_message("Raffle winner: " + raffle_winner_displayname + ". Winner's chance was: " + str((1/len(raffle_contestants)*100)) + "%")
 									# Only allow winner to win once per raffle
 									raffle_contestants[:] = (remaining_contestants for remaining_contestants in raffle_contestants if remaining_contestants != raffle_winner)
 						# Supporting multiple streamers
@@ -356,7 +365,7 @@ def main_parser_loop():
 #										multistream_url = msg[2].strip()
 #										print("LOG: Multistream URL set to: " + multistream_url)
 #										command_irc_send_message("Multistream URL set to: " + multistream_url)
-	#							else:
+#								else:
 #									print("LOG: Unknown usage of !multi.")
 #									command_irc_send_message("Unknown usage of !multi.")
 #							else:
@@ -401,16 +410,16 @@ def main_parser_loop():
 						print("LOG: " + username + " is entry number " + str(len(raffle_contestants)))
 
 				# Message censor. Employ a strikeout system and ban policy.
-				# Control with a True / False if language monitoring is active
+				# TODO Control with a True / False if language monitoring is active
 				for language_control_test in language_watchlist.prohibited_words:
 					if re.search(language_control_test, message):
 
-						add_user_strike(username)
+						add_user_strike(db_action, username)
 						print ("LOG: " + username +" earned a strike for violating the language watchlist.")
 
 				# Messages longer than a set length in all uppercase count as a strike
 				if len(message) >= bot_cfg.uppercase_message_suppress_length and message == message.upper():
-					add_user_strike(username)
+					add_user_strike(db_action, username)
 					print ("LOG: " + username + " earned a timeout for a message in all capitals. Strike added.")
 
 			# Monitor MODE messages to detect if bot gains or loses moderator status
@@ -429,17 +438,21 @@ def main_parser_loop():
 				irc_socket.close()
 				active_connection = False
 
-#			elif re.search(r" JOIN ", message_line):
-#				print(message_line)
-#				break
+			# Add viewers to database on join
+			elif re.search(r" JOIN ", message_line):
+				# Parse JOIN message to obtain username
+				print(message_line)
+				parsed_irc_message = irc_join_regex.search(message_line)
+				username = parsed_irc_message.group(1)
 
-#			elif re.search(r" PART ", message_line):
-#				print(message_line)
-#				break
+				# Add username to database if not present
+				if fb_sql.db_vt_test_username(db_action, username) == False:
+					fb_sql.db_vt_addentry(db_action, username)
 
 			# Drop user status messages in the specific channel (USERSTATE), and the bot's GLOBALUSERSTATE
 			elif re.search(r" USERSTATE ", message_line) or \
-			re.search(r" GLOBALUSERSTATE ", message_line):
+			re.search(r" GLOBALUSERSTATE ", message_line) or \
+			re.search(r" PART ", message_line):
 				break
 
 			# Not an IRC message covered elsewhere
@@ -458,13 +471,23 @@ if __name__ == "__main__":
 
 	bot_active = True
 
+	### CONNECT TO SQLITE DATABSE ###
+	# Connect to sqlite database and store connection information
+	db_connection, db_action = fb_sql.db_initialize()
+	# create a Viewers table if it does not already exist
+	fb_sql.db_vt_createtable(db_action)
+	# count the rows
+
 	while bot_active:
 
 		### START EXTERNAL CONNECTION ###
 		initialize_irc_connection()
 
 		### LOOP THROUGH MESSAGES FROM SERVER TO TAKE ACTION ###
-		main_parser_loop()
+		main_parser_loop(db_action)
 
-	# Loop broken; time to exit
+	# Loop broken; time to close things down
+	print( fb_sql.db_vt_show_all(db_action) )
+	# give feedback from db - # of rows, change from start?
+	fb_sql.db_shutdown(db_connection)
 	exit(0)
