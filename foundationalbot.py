@@ -30,13 +30,15 @@
 # Teach bot to send a whisper - Postponed til Whispers 2.0
 # Teach bot to read a whisper - Postponed til Whispers 2.0
 # Add website whitelisting - youtube, twitch, wikipedia, ?
-# If raffle is active, format the winner's username differently so it'll be seen in terminal log
+# If raffle is active, format the winner's username differently so it'll be seen in terminal log - color?
 # Have raffles show subscriber status if that's the case - how long they have followed?
 # Timed messages to channel - youtube, twitter, ?
 # Add a reset command - resets raffle settings, multi settings, and clears strikeout list
 # Stream info commands: uptime, followers, viewers, set status, set game - needs twitch api hookup
 # Pull the command parser out of the main loop parser
+# Simplify command parser - check user's mod status, or whether broadcaster when looking at command?
 # Clean up where variables are declared
+# Reconfigure for multiple channels
 
 # Core Modules
 import socket 			# IRC networking
@@ -411,16 +413,19 @@ def main_parser_loop(db_action):
 
 				# Message censor. Employ a strikeout system and ban policy.
 				# TODO Control with a True / False if language monitoring is active
-				for language_control_test in language_watchlist.prohibited_words:
-					if re.search(language_control_test, message):
+				if ( username != broadcaster and
+				     user_mod_status == "" ):
+					for language_control_test in language_watchlist.prohibited_words:
+						if re.search(language_control_test, message):
 
+							add_user_strike(db_action, username)
+							print ("LOG: " + username +" earned a strike for violating the language watchlist.")
+
+					# Messages longer than a set length in all uppercase count as a strike
+					if ( len(message) >= bot_cfg.uppercase_message_suppress_length and
+					     message == message.upper() ):
 						add_user_strike(db_action, username)
-						print ("LOG: " + username +" earned a strike for violating the language watchlist.")
-
-				# Messages longer than a set length in all uppercase count as a strike
-				if len(message) >= bot_cfg.uppercase_message_suppress_length and message == message.upper():
-					add_user_strike(db_action, username)
-					print ("LOG: " + username + " earned a timeout for a message in all capitals. Strike added.")
+						print ("LOG: " + username + " earned a timeout for a message in all capitals. Strike added.")
 
 			# Monitor MODE messages to detect if bot gains or loses moderator status
 			elif re.search(r" MODE ", message_line):
