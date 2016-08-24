@@ -18,10 +18,13 @@ This bot is functional, but a work in progress for additional planned features.
 	* !raffle reopen: Continue monitoring viewers' chat messages for the raffle keyword
 	* !raffle winner: Choose and remove a winner from the raffle pool so multiple drawings may be made at once without having one person win multiple drawings
 * !voice username: Restore chat privileges to a banned or timedout viewer
+
 ## Editor
 To be written
+
 ## Moderator
 To be written
+
 ## Viewer
 * Following the broadcaster outside of Twitch
 	* !twitter: Send broadcaster's Twitter name to chat
@@ -32,6 +35,7 @@ To be written
 	* !xbl or !xb1: Send XBox Live name to chat
 * !schedule: Send bot's current time and broadcaster's schedule for that day
 * !time: Send the bot's current time to chat
+
 # Chat Monitoring
 ## Strikeout System
 The bot works on a strike out system leading up to an eventual ban when enough strikes are accrued. The necessary strikes are set by the bot administrator.
