@@ -129,7 +129,7 @@ def command_irc_quit():
 ### PARSING VARIABLES AND SUPPORT FUNCTIONS ###
 
 # Regular expressions that will be used frequently so build the regex once to quickly retrieve, use grouping to reuse
-irc_message_regex = re.compile(r"^@badges=[a-zA-Z0-9_\/]*;color=[#a-fA-F0-9]*;display-name=([a-zA-Z0-9_\-]*);emotes=[a-zA-Z0-9\-:\/,]*;id=[a-f0-9\-]*;mod=\d+;room-id=\d+;subscriber=(\d+);turbo=\d+;user-id=\d+;user-type=(\w*) :(\w+)!\w+@\w+\.tmi\.twitch\.tv PRIVMSG (#\w+) :")
+irc_message_regex = re.compile(r"^@badges=[a-zA-Z0-9_,\/]*;color=[#a-fA-F0-9]*;display-name=([a-zA-Z0-9_\-]*);emotes=[a-zA-Z0-9\-:\/,]*;id=[a-f0-9\-]*;mod=\d+;room-id=\d+;sent-ts=\d+;subscriber=(\d+);tmi-sent-ts=\d+;turbo=\d+;user-id=\d+;user-type=(\w*) :(\w+)!\w+@\w+\.tmi\.twitch\.tv PRIVMSG (#\w+) :")
 irc_join_regex = re.compile(r"^:\w+!(\w+)@\w+\.tmi\.twitch\.tv JOIN #\w+")
 
 # Strikeout system implementation
