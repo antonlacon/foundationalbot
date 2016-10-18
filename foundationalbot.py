@@ -18,10 +18,6 @@
 # You should have received a copy of the GNU General Public License
 # along with foundationalbot.py. If not, see <http://www.gnu.org/licenses/>.
 
-# For other Python3 based Twitch IRC Bots:
-# http://www.instructables.com/id/Twitchtv-Moderator-Bot/?ALLSTEPS
-# https://www.sevadus.tv/forums/index.php?/topic/774-simple-python-irc-bot/
-
 # ToDo:
 # Add timestamp to self-generated messages - write log function to use for messaging - debug module can do it?
 # Timestamp chat messages too?
@@ -84,7 +80,7 @@ broadcaster_command_list = [ "!quit", "!exit",
 #				"!multi",
 
 # Channel name is based on broadcaster's name, so use it to determine broadcaster
-broadcaster = bot_cfg.channel[1:]
+irc_channel_broadcaster = bot_cfg.channel[1:]
 
 # Twitch limits user messages to 20 messages in 30 seconds. Failure to obey = 8-hr ban.
 # Moderators have an increased limit to 100 messages in 30 seconds.
@@ -118,18 +114,18 @@ def command_irc_ping_respond():
 	messages_sent +=1
 
 # Exit IRC channel
-def command_irc_quit():
+def command_irc_quit(message_rate):
 	global messages_sent
-	global messages_rate
 	command_irc_send_message("Shutting down.")
 	irc_socket.send("PART {}\r\n".format(bot_cfg.channel).encode("utf-8"))
-	messages_sent += 1
+	messages_sent += 2
 	sleep((1/message_rate) * messages_sent)
 
 ### PARSING VARIABLES AND SUPPORT FUNCTIONS ###
 
 # Regular expressions that will be used frequently so build the regex once to quickly retrieve, use grouping to reuse
-irc_message_regex = re.compile(r"^@badges=[a-zA-Z0-9_,\/]*;color=[#a-fA-F0-9]*;display-name=([a-zA-Z0-9_\-]*);emotes=[a-zA-Z0-9\-:\/,]*;id=[a-f0-9\-]*;mod=\d+;room-id=\d+;sent-ts=\d+;subscriber=(\d+);tmi-sent-ts=\d+;turbo=\d+;user-id=\d+;user-type=(\w*) :(\w+)!\w+@\w+\.tmi\.twitch\.tv PRIVMSG (#\w+) :")
+#irc_message_regex = re.compile(r"^@badges=[a-zA-Z0-9_,\/]*;color=[#a-fA-F0-9]*;display-name=([a-zA-Z0-9_\-]*);emotes=[a-zA-Z0-9\-:\/,]*;id=[a-f0-9\-]*;mod=\d+;room-id=\d+;sent-ts=\d+;subscriber=(\d+);tmi-sent-ts=\d+;turbo=\d+;user-id=\d+;user-type=(\w*) :(\w+)!\w+@\w+\.tmi\.twitch\.tv PRIVMSG (#\w+) :")
+irc_message_regex = re.compile(r"^@.*;display-name=([a-zA-Z0-9_\-]*);.*;mod=\d+;.*;subscriber=(\d+);.*;user-type=(\w*) :(\w+)!\w+@\w+\.tmi\.twitch\.tv PRIVMSG (#\w+) :")
 irc_join_regex = re.compile(r"^:\w+!(\w+)@\w+\.tmi\.twitch\.tv JOIN #\w+")
 
 # Strikeout system implementation
@@ -235,7 +231,6 @@ def main_parser_loop(db_action):
 	global irc_response_buffer
 	global message_rate
 	global messages_sent
-	global user_strike_count
 	global raffle_active
 	global raffle_keyword
 	global raffle_contestants
@@ -270,9 +265,11 @@ def main_parser_loop(db_action):
 				parsed_irc_message = irc_message_regex.search(message_line)
 				user_display_name = parsed_irc_message.group(1)
 				user_subscriber_status = parsed_irc_message.group(2)
-				user_mod_status = parsed_irc_message.group(3)
+				user_mod_status = parsed_irc_message.group(3) # is this correct?
 				username = parsed_irc_message.group(4)
 				irc_channel = parsed_irc_message.group(5)
+# TODO: Needed for multichannel support
+#				irc_channel_broadcaster = irc_channel[1:]
 				message = irc_message_regex.sub("", message_line)
 
 				print(now_local_logging + ":" + irc_channel + ":" + username + ": " + message)
@@ -292,19 +289,19 @@ def main_parser_loop(db_action):
 					msg[0] = msg[0].lower()
 
 					# Commands only available to broadcaster
-					if msg[0] in broadcaster_command_list and username == broadcaster:
+					if msg[0] in broadcaster_command_list and username == irc_channel_broadcaster:
 
 						# Shutting down the bot in a clean manner
 						if msg[0] == "!quit" or msg[0] == "!exit":
 							print("LOG: Shutting down on commnd from: " + username)
-							command_irc_quit()
+							command_irc_quit(message_rate)
 							irc_socket.close()
 							active_connection = False
 							bot_active = False
 						# Tell bot to quit and reconnect - for test purposes
 						if msg[0] == "!reconnect":
 							print("LOG: Reconnecting to IRC server on command from: " + username)
-							command_irc_quit()
+							command_irc_quit(message_rate)
 							irc_socket.close()
 							active_connection = False
 						# Raffle support commands
@@ -413,7 +410,7 @@ def main_parser_loop(db_action):
 
 				# Message censor. Employ a strikeout system and ban policy.
 				# TODO Control with a True / False if language monitoring is active
-				if ( username != broadcaster and
+				if ( username != irc_channel_broadcaster and
 				     user_mod_status == "" ):
 					for language_control_test in language_watchlist.prohibited_words:
 						if re.search(language_control_test, message):
@@ -439,7 +436,7 @@ def main_parser_loop(db_action):
 			# Handle requests to reconnect to the chat servers from Twitch
 			elif re.search(r" RECONNECT ", message_line):
 				print("LOG: Reconnecting to server based on message from server.")
-				command_irc_quit()
+				command_irc_quit(message_rate)
 				irc_socket.close()
 				active_connection = False
 
