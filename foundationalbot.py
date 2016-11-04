@@ -19,6 +19,7 @@
 # along with foundationalbot.py. If not, see <http://www.gnu.org/licenses/>.
 
 # ToDo:
+# Proper Python formatting
 # Add timestamp to self-generated messages - write log function to use for messaging - debug module can do it?
 # Timestamp chat messages too?
 # finish !schedule support - will need pytz installed (3rd party) or forget timezones altogether?
@@ -35,6 +36,7 @@
 # Simplify command parser - check user's mod status, or whether broadcaster when looking at command?
 # Clean up where variables are declared
 # Reconfigure for multiple channels
+# Rate limiter for JOIN commands
 
 # Core Modules
 import socket 			# IRC networking
@@ -99,13 +101,25 @@ def command_irc_send_message(msg):
 def command_irc_ban(user):
 	command_irc_send_message(".ban {}".format(user))
 
-# Silence a user for X seconds (default 10 mins)
+# Silence a user for X seconds (default 10 minutes)
 def command_irc_timeout(user, seconds=600):
 	command_irc_send_message(".timeout {}".format(user, seconds))
 
 # Unban or return voice to a user
 def command_irc_unban(user):
 	command_irc_send_message(".unban {}".format(user))
+
+# JOIN channel
+def command_irc_join(channel):
+	global messages_sent
+	irc_socket.send("JOIN {}\r\n".format(channel).encode("utf-8"))
+	messages_sent += 1
+
+# DePART channel
+def command_irc_part(channel):
+	global messages_sent
+	irc_socket.send("PART {}\r\n".format(channel).encode("utf-8"))
+	messages_sent += 1
 
 # Answer PING request with PONG
 def command_irc_ping_respond():
@@ -117,9 +131,7 @@ def command_irc_ping_respond():
 def command_irc_quit(message_rate):
 	global messages_sent
 	command_irc_send_message("Shutting down.")
-	irc_socket.send("PART {}\r\n".format(bot_cfg.channel).encode("utf-8"))
-	messages_sent += 2
-	sleep((1/message_rate) * messages_sent)
+	command_irc_part(bot_cfg.channel)
 
 ### PARSING VARIABLES AND SUPPORT FUNCTIONS ###
 
@@ -178,7 +190,9 @@ def initialize_irc_connection():
 	global active_connection
 	global irc_response_buffer
 	global irc_socket
+	global messages_sent
 	initial_connection = False
+	messages_sent = 0
 
 	# Connect to Twitch and enter chosen channel
 	try:
@@ -186,8 +200,7 @@ def initialize_irc_connection():
 		irc_socket.connect((bot_cfg.host_server, bot_cfg.host_port))
 		irc_socket.send("PASS {}\r\n".format(bot_cfg.bot_password).encode("utf-8"))
 		irc_socket.send("NICK {}\r\n".format(bot_cfg.bot_handle).encode("utf-8"))
-		# Future note: 50 channels may be JOINed every 15 seconds
-		irc_socket.send("JOIN {}\r\n".format(bot_cfg.channel).encode("utf-8"))
+		command_irc_join(bot_cfg.channel)
 		initial_connection = True
 	except:
 		raise
@@ -215,7 +228,7 @@ def initialize_irc_connection():
 			else:
 				print(message_line)
 	# pause for rate limiter and the number of messages sent in login process
-	sleep((1 / message_rate) * 4)
+	sleep((1 / message_rate) * (messages_sent + 3))
 
 ### COMMAND PARSER FUNCTION ###
 #def command_parser():
