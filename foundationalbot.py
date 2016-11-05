@@ -137,8 +137,9 @@ def command_irc_quit(message_rate):
 
 # Regular expressions that will be used frequently so build the regex once to quickly retrieve, use grouping to reuse
 #irc_message_regex = re.compile(r"^@badges=[a-zA-Z0-9_,\/]*;color=[#a-fA-F0-9]*;display-name=([a-zA-Z0-9_\-]*);emotes=[a-zA-Z0-9\-:\/,]*;id=[a-f0-9\-]*;mod=\d+;room-id=\d+;sent-ts=\d+;subscriber=(\d+);tmi-sent-ts=\d+;turbo=\d+;user-id=\d+;user-type=(\w*) :(\w+)!\w+@\w+\.tmi\.twitch\.tv PRIVMSG (#\w+) :")
-irc_message_regex = re.compile(r"^@.*;display-name=([a-zA-Z0-9_\-]*);.*;mod=\d+;.*;subscriber=(\d+);.*;user-type=(\w*) :(\w+)!\w+@\w+\.tmi\.twitch\.tv PRIVMSG (#\w+) :")
+irc_message_regex = re.compile(r"^@.*;display-name=([a-zA-Z0-9_\-]*);.*;mod=\d;.*;subscriber=(\d);.*;user-type=(\w*) :(\w+)!\w+@\w+\.tmi\.twitch\.tv PRIVMSG (#\w+) :")
 irc_join_regex = re.compile(r"^:\w+!(\w+)@\w+\.tmi\.twitch\.tv JOIN #\w+")
+irc_userstate_regex = re.compile(r"^@.*;mod=(\d);.* :tmi\.twitch\.tv USERSTATE (#\w+)")
 
 # Strikeout system implementation
 def add_user_strike(db_action, user):
@@ -247,6 +248,8 @@ def main_parser_loop(db_action):
 	global raffle_active
 	global raffle_keyword
 	global raffle_contestants
+
+	bot_is_mod = False
 
 	# Parser loop
 	while active_connection:
@@ -423,7 +426,8 @@ def main_parser_loop(db_action):
 
 				# Message censor. Employ a strikeout system and ban policy.
 				# TODO Control with a True / False if language monitoring is active
-				if ( username != irc_channel_broadcaster and
+				if ( bot_is_mod == True and
+				     username != irc_channel_broadcaster and
 				     user_mod_status == "" ):
 					for language_control_test in language_watchlist.prohibited_words:
 						if re.search(language_control_test, message):
@@ -441,9 +445,11 @@ def main_parser_loop(db_action):
 			elif re.search(r" MODE ", message_line):
 				if "#" + bot_cfg.channel + " +o " + bot_cfg.bot_handle in message_line:
 					print("LOG: Bot gained mod status. Adjusting message rate.")
+					bot_is_mod = True
 					message_rate = (100/30)
 				elif "#" + bot_cfg.channel + " -o " + bot_cfg.bot_handle in message_line:
 					print("LOG: Bot lost mod status. Adjusting message rate.")
+					bot_is_mod = False
 					message_rate = (20/30)
 
 			# Handle requests to reconnect to the chat servers from Twitch
@@ -464,9 +470,19 @@ def main_parser_loop(db_action):
 				if fb_sql.db_vt_test_username(db_action, username) == False:
 					fb_sql.db_vt_addentry(db_action, username)
 
-			# Drop user status messages in the specific channel (USERSTATE), and the bot's GLOBALUSERSTATE
-			elif re.search(r" USERSTATE ", message_line) or \
-			re.search(r" GLOBALUSERSTATE ", message_line) or \
+			# Check USERSTATE for moderator status
+			elif re.search(r" USERSTATE ", message_line):
+				parsed_irc_message = irc_userstate_regex.search(message_line)
+				user_mod_status = parsed_irc_message.group(1)
+				irc_channel = parsed_irc_message.group(2)
+
+				if user_mod_status == "1" and bot_is_mod == False:
+					bot_is_mod = True
+				elif user_mod_status == "0" and bot_is_mod == True:
+					bot_is_mod = False
+
+			# Ignore dePARTure and GLOBALUSERSTATE messages
+			elif re.search(r" GLOBALUSERSTATE ", message_line) or \
 			re.search(r" PART ", message_line):
 				break
 
