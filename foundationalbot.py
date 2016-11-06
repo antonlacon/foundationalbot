@@ -137,7 +137,8 @@ def command_irc_quit(message_rate):
 
 # Regular expressions that will be used frequently so build the regex once to quickly retrieve, use grouping to reuse
 #irc_message_regex = re.compile(r"^@badges=[a-zA-Z0-9_,\/]*;color=[#a-fA-F0-9]*;display-name=([a-zA-Z0-9_\-]*);emotes=[a-zA-Z0-9\-:\/,]*;id=[a-f0-9\-]*;mod=\d+;room-id=\d+;sent-ts=\d+;subscriber=(\d+);tmi-sent-ts=\d+;turbo=\d+;user-id=\d+;user-type=(\w*) :(\w+)!\w+@\w+\.tmi\.twitch\.tv PRIVMSG (#\w+) :")
-irc_message_regex = re.compile(r"^@.*;display-name=([a-zA-Z0-9_\-]*);.*;mod=\d;.*;subscriber=(\d);.*;user-type=(\w*) :(\w+)!\w+@\w+\.tmi\.twitch\.tv PRIVMSG (#\w+) :")
+#irc_message_regex = re.compile(r"^@.*;display-name=([a-zA-Z0-9_\-]*);.*;mod=\d;.*;subscriber=(\d);.*;user-type=(\w*) :(\w+)!\w+@\w+\.tmi\.twitch\.tv PRIVMSG (#\w+) :")
+irc_message_regex = re.compile(r"^@.*;display-name=(.*?);.*;mod=\d;.*;subscriber=(\d);.*;user-type=(\w*) :(\w+)!\w+@\w+\.tmi\.twitch\.tv PRIVMSG (#\w+) :")
 irc_join_regex = re.compile(r"^:\w+!(\w+)@\w+\.tmi\.twitch\.tv JOIN #\w+")
 irc_userstate_regex = re.compile(r"^@.*;mod=(\d);.* :tmi\.twitch\.tv USERSTATE (#\w+)")
 
@@ -444,11 +445,11 @@ def main_parser_loop(db_action):
 			# Monitor MODE messages to detect if bot gains or loses moderator status
 			elif re.search(r" MODE ", message_line):
 				if "#" + bot_cfg.channel + " +o " + bot_cfg.bot_handle in message_line:
-					print("LOG: Bot gained mod status. Adjusting message rate.")
+					print("LOG: Bot gained mod status. Adjusting message rate and monitoring chat.")
 					bot_is_mod = True
 					message_rate = (100/30)
 				elif "#" + bot_cfg.channel + " -o " + bot_cfg.bot_handle in message_line:
-					print("LOG: Bot lost mod status. Adjusting message rate.")
+					print("LOG: Bot lost mod status. Adjusting message rate and no longer moderating chat.")
 					bot_is_mod = False
 					message_rate = (20/30)
 
@@ -462,7 +463,6 @@ def main_parser_loop(db_action):
 			# Add viewers to database on join
 			elif re.search(r" JOIN ", message_line):
 				# Parse JOIN message to obtain username
-				print(message_line)
 				parsed_irc_message = irc_join_regex.search(message_line)
 				username = parsed_irc_message.group(1)
 
@@ -478,12 +478,22 @@ def main_parser_loop(db_action):
 
 				if user_mod_status == "1" and bot_is_mod == False:
 					bot_is_mod = True
+					print("LOG Bot is a moderator: adjusting messaging rate and monitoring chat.")
 				elif user_mod_status == "0" and bot_is_mod == True:
 					bot_is_mod = False
+					print("LOG Bot is not a moderator: using slower message rate and not monitoring chat.")
 
-			# Ignore dePARTure and GLOBALUSERSTATE messages
-			elif re.search(r" GLOBALUSERSTATE ", message_line) or \
-			re.search(r" PART ", message_line):
+			# Ignore the following:
+			# PART: People leaving the chat room
+			# GLOBALUSERSTATE: ?
+			# CLEARCHAT: Viewer's chat messages being purged
+			# ROOMSTATE: Room status (slow-mode, sub-only, etc)
+			# NOTICE: ?
+			elif re.search(r" CLEARCHAT ", message_line) or \
+			re.search(r" GLOBALUSERSTATE ", message_line) or \
+			re.search(r" NOTICE ", message_line) or \
+			re.search(r" PART ", message_line) or \
+			re.search(r" ROOMSTATE ", message_line):
 				break
 
 			# Not an IRC message covered elsewhere
