@@ -18,25 +18,36 @@
 # You should have received a copy of the GNU General Public License
 # along with foundationalbot.py. If not, see <http://www.gnu.org/licenses/>.
 
-# ToDo:
-# Proper Python formatting
-# Add timestamp to self-generated messages - write log function to use for messaging - debug module can do it?
-# Timestamp chat messages too?
-# finish !schedule support - will need pytz installed (3rd party) or forget timezones altogether?
-# Twitter integration? - Twitch website has done this?
-# Teach bot to send a whisper - Postponed til Whispers 2.0
-# Teach bot to read a whisper - Postponed til Whispers 2.0
-# Add website whitelisting - youtube, twitch, wikipedia, ?
-# If raffle is active, format the winner's username differently so it'll be seen in terminal log - color?
-# Have raffles show subscriber status if that's the case - how long they have followed?
-# Timed messages to channel - youtube, twitter, ?
-# Add a reset command - resets raffle settings, multi settings, and clears strikeout list
-# Stream info commands: uptime, followers, viewers, set status, set game - needs twitch api hookup
-# Pull the command parser out of the main loop parser
-# Simplify command parser - check user's mod status, or whether broadcaster when looking at command?
-# Clean up where variables are declared
-# Reconfigure for multiple channels
-# Rate limiter for JOIN commands
+""" ToDo:
+Proper Python formatting
+Add timestamp to self-generated messages - write log function to use for messaging - debug module can do it?
+Timestamp chat messages too?
+finish !schedule support - will need pytz installed (3rd party) or forget timezones altogether?
+Twitter integration? - Twitch website has done this?
+Teach bot to send a whisper - Postponed til Whispers 2.0
+Teach bot to read a whisper - Postponed til Whispers 2.0
+Add website whitelisting - youtube, twitch, wikipedia, ?
+If raffle is active, format the winner's username differently so it'll be seen in terminal log - color?
+Have raffles show subscriber status if that's the case - how long they have followed?
+Timed messages to channel - youtube, twitter, ?
+Add a reset command - resets raffle settings, multi settings, and clears strikeout list
+Stream info commands: uptime, followers, viewers, set status, set game - needs twitch api hookup
+Pull the command parser out of the main loop parser
+Simplify command parser - check user's mod status, or whether broadcaster when looking at command?
+Clean up where variables are declared
+Reconfigure for multiple channels
+	!join & !leave commands in bot's channel
+	List of channels bot is in
+		The channel's raffle words
+		Bot's op status in channel
+	Change sleep method to account for whether it was a mod command sleep, or regular user
+	Strikes on a per channel basis
+	Use a 'channels' db table to track this?
+	Channels table in memory - viewers table on disk?
+Rate limiter for JOIN commands
+Replace the sleep system with a date to determine when the next message or command is allowed?
+	or change the sleep command to sit in an 'if' where messages_sent > 0?
+"""
 
 # Core Modules
 import socket 			# IRC networking
@@ -486,11 +497,13 @@ def main_parser_loop(db_action):
 			# Ignore the following:
 			# PART: People leaving the chat room
 			# GLOBALUSERSTATE: ?
+			# HOSTTARGET: Host mode being turned on/off
 			# CLEARCHAT: Viewer's chat messages being purged
 			# ROOMSTATE: Room status (slow-mode, sub-only, etc)
 			# NOTICE: ?
 			elif re.search(r" CLEARCHAT ", message_line) or \
 			re.search(r" GLOBALUSERSTATE ", message_line) or \
+			re.search(r" HOSTTARGET ", message_line) or \
 			re.search(r" NOTICE ", message_line) or \
 			re.search(r" PART ", message_line) or \
 			re.search(r" ROOMSTATE ", message_line):
