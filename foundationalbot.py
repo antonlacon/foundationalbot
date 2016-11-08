@@ -62,6 +62,9 @@ import language_watchlist 	# Bot's file for monitoring language to take action o
 
 ### START UP VARIABLES ###
 
+# Bot's home channel
+bot_channel = "#" + bot_cfg.bot_handle
+
 # Command listing for all users - comma separated
 public_command_list = [ "!test",
 		"!xbl", "!xb1",
@@ -78,11 +81,6 @@ broadcaster_command_list = [ "!quit", "!exit",
 				"!reconnect",
 				"!voice" ]
 #				"!multi",
-
-# Twitch limits user messages to 20 messages in 30 seconds. Failure to obey = 8-hr ban.
-# Moderators have an increased limit to 100 messages in 30 seconds.
-# Script will detect below whether it is a mod and adjust the rate accordingly
-message_rate = (20/30)
 
 ### PARSING VARIABLES ###
 
@@ -171,7 +169,7 @@ def initialize_irc_connection():
 			else:
 				print(message_line)
 	# pause for rate limiter and the number of messages sent in login process
-	sleep((1 / message_rate) * (config.messages_sent + 3))
+	sleep((1 / config.message_rate) * (config.messages_sent + 3))
 
 ### PARSER LOOP ###
 def main_parser_loop(db_action):
@@ -180,7 +178,6 @@ def main_parser_loop(db_action):
 	global active_connection
 	global bot_active
 	global irc_response_buffer
-	global message_rate
 
 	bot_is_mod = False
 
@@ -387,11 +384,11 @@ def main_parser_loop(db_action):
 				if "#" + bot_cfg.channel + " +o " + bot_cfg.bot_handle in message_line:
 					print("LOG: Bot gained mod status. Adjusting message rate and monitoring chat.")
 					bot_is_mod = True
-					message_rate = (100/30)
+					config.message_rate = (100/30)
 				elif "#" + bot_cfg.channel + " -o " + bot_cfg.bot_handle in message_line:
 					print("LOG: Bot lost mod status. Adjusting message rate and no longer moderating chat.")
 					bot_is_mod = False
-					message_rate = (20/30)
+					config.message_rate = (20/30)
 
 			# Handle requests to reconnect to the chat servers from Twitch
 			elif re.search(r" RECONNECT ", message_line):
@@ -417,11 +414,13 @@ def main_parser_loop(db_action):
 				irc_channel = parsed_irc_message.group(2)
 
 				if user_mod_status == "1" and bot_is_mod == False:
+					print("LOG: Bot gained mod status. Adjusting message rate and monitoring chat.")
 					bot_is_mod = True
-					print("LOG Bot is a moderator: adjusting messaging rate and monitoring chat.")
+					config.message_rate = (100/30)
 				elif user_mod_status == "0" and bot_is_mod == True:
+					print("LOG: Bot lost mod status. Adjusting message rate and no longer moderating chat.")
 					bot_is_mod = False
-					print("LOG Bot is not a moderator: using slower message rate and not monitoring chat.")
+					config.message_rate = (20/30)
 
 			# Ignore the following:
 			# PART: People leaving the chat room
@@ -444,7 +443,7 @@ def main_parser_loop(db_action):
 
 			# Rate control on sending messages
 #			print("Messages sent: " + str(config.messages_sent))
-			sleep((1 / message_rate) * config.messages_sent)
+			sleep((1 / config.message_rate) * config.messages_sent)
 
 ### MAIN ###
 if __name__ == "__main__":

@@ -16,4 +16,12 @@
 # You should have received a copy of the GNU General Public License along with
 # config.py. If not, see <http://www.gnu.org/licenses/>.
 
+""" Twitch limits user messages to 20 messages in 30 seconds. Failure to obey is
+an 8-hour global ban. Moderators have an increased limit to 100 messages in 30
+seconds. The bot will detect whether it is a mod and adjust its rate limit
+accordingly.
+"""
+message_rate = (20/30)
+
+# Message counter to rate limit messages sent to Twitch
 messages_sent = 0
