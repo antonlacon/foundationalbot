@@ -34,6 +34,8 @@
 	Simplify command parser - check user's mod status, or whether broadcaster when looking at command?
 	Reconfigure for multiple channels
 		!join & !leave commands in bot's channel
+		Adjust RECONNECT once command_irc_send_message accepts channel assignment
+		Only join bot's channel on initial login - move other logins to pre-parser loop
 		List of channels bot is in
 			The channel's raffle words
 			Bot's op status in channel
@@ -44,6 +46,7 @@
 	Rate limiter for JOIN commands
 	Replace the sleep system with a date to determine when the next message or command is allowed?
 		or change the sleep command to sit in an 'if' where messages_sent > 0?
+	There is a risk of exceeding the message/command limit at present - join/part on reconnect
 """
 
 # Core Modules
@@ -141,7 +144,9 @@ def initialize_irc_connection():
 		irc_socket.connect((bot_cfg.host_server, bot_cfg.host_port))
 		irc_socket.send("PASS {}\r\n".format(bot_cfg.bot_password).encode("utf-8"))
 		irc_socket.send("NICK {}\r\n".format(bot_cfg.bot_handle).encode("utf-8"))
+		# TODO if config.channels_present isn't empty... loop through entries joining channels
 		fb_irc.command_irc_join(irc_socket, bot_cfg.channel)
+		fb_irc.command_irc_join(irc_socket, bot_channel)
 		initial_connection = True
 	except:
 		raise
@@ -174,13 +179,13 @@ def initialize_irc_connection():
 ### PARSER LOOP ###
 def main_parser_loop(db_action):
 	""" The main parser loop that processes messages from the IRC server """
+
 	# Variables declared outside the function that will change inside the function
 	global active_connection
 	global bot_active
 	global irc_response_buffer
 
 	bot_is_mod = False
-
 	# Raffle support variables
 	raffle_active = False
 	raffle_keyword = None
@@ -233,7 +238,7 @@ def main_parser_loop(db_action):
 
 				# Command Parser - if changing commands, remember to adjust the command listings at top
 				if message.startswith("!"):
-					# FIXME turn this into a command parser
+					# TODO turn this into a command parser
 					msg = message.split(" ")
 					# Force to lowercase for parsing
 					msg[0] = msg[0].lower()
@@ -251,7 +256,10 @@ def main_parser_loop(db_action):
 						# Tell bot to quit and reconnect - for test purposes
 						if msg[0] == "!reconnect":
 							print("LOG: Reconnecting to IRC server on command from: " + username)
-							fb_irc.command_irc_quit(irc_socket)
+							for channel in config.channels_present:
+								print(channel)
+								#fb_irc.command_irc_send_message(irc_socket, "Ordered to reconnect; will return shortly!")
+								fb_irc.command_irc_reconnect(irc_socket, channel)
 							irc_socket.close()
 							active_connection = False
 						# Raffle support commands
@@ -393,7 +401,9 @@ def main_parser_loop(db_action):
 			# Handle requests to reconnect to the chat servers from Twitch
 			elif re.search(r" RECONNECT ", message_line):
 				print("LOG: Reconnecting to server based on message from server.")
-				fb_irc.command_irc_quit(irc_socket)
+				for channel in config.channels_present:
+					fb_irc.command_irc_reconnect(irc_socket, bot_cfg.channel)
+#					fb_irc.command_irc_send_message(irc_socket, "Ordered to reconnect; will return shortly!")
 				irc_socket.close()
 				active_connection = False
 

@@ -20,9 +20,11 @@
 	Is the bot_cfg import necessary after multichannel?
 """
 
+# Core Modules
+from time import sleep	# sleep() command
 # Project Modules
-import bot_cfg	# Bot configuration
-import config	# Variables shared between modules
+import bot_cfg		# Bot configuration
+import config		# Variables shared between modules
 
 ### IRC COMMANDS ###
 
@@ -46,11 +48,15 @@ def command_irc_unban(irc_socket, user):
 def command_irc_join(irc_socket, channel):
 	""" Join specified channel """
 	irc_socket.send("JOIN {}\r\n".format(channel).encode("utf-8"))
+	config.channels_present.append(channel)
 	config.messages_sent += 1
+	# Rate limit of 50 JOINs in 15 seconds or about 3 per second
+	sleep( 1 / (50 / 15))
 
 def command_irc_part(irc_socket, channel):
 	""" Depart specified channel """
 	irc_socket.send("PART {}\r\n".format(channel).encode("utf-8"))
+	config.channels_present.remove(channel)
 	config.messages_sent += 1
 
 def command_irc_ping_respond(irc_socket):
@@ -62,3 +68,8 @@ def command_irc_quit(irc_socket):
 	""" Leave channel with a departure message """
 	command_irc_send_message(irc_socket, "Shutting down.")
 	command_irc_part(irc_socket, bot_cfg.channel)
+
+def command_irc_reconnect(irc_socket, channel):
+	""" Leave channel without removing from channel list """
+	irc_socket.send("PART {}\r\n".format(channel).encode("utf-8"))
+	config.messages_sent += 1
