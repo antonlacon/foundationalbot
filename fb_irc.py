@@ -2,20 +2,26 @@
 #
 # Copyright 2016 Ian Leonard <antonlacon@gmail.com>
 #
-# This file is fb_irc.py and is part of the Foundational IRC Bot for Twitch.tv project.
+# This file is fb_irc.py and is part of the Foundational IRC Bot for Twitch.tv
+# project.
 #
-# fb_irc.py is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3 of the License.
+# fb_irc.py is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, version 3 of the License.
 #
-# fb_irc.py is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+# fb_irc.py is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along with fb_irc.py. If not, see <http://www.gnu.org/licenses>.
+# You should have received a copy of the GNU General Public License along with
+# fb_irc.py. If not, see <http://www.gnu.org/licenses>.
 
 """ TODO:
-	Integrate these commands into foundationalbot.py
+	Is the bot_cfg import necessary after multichannel?
 """
 
 # Project Modules
-import bot_cfg	# Bot configuration - temporary?
+import bot_cfg	# Bot configuration
 import config	# Variables shared between modules
 
 ### IRC COMMANDS ###
