@@ -1,27 +1,26 @@
 #!/usr/bin/env python3
-
+#
 # Foundational IRC Bot for Twitch.tv
-
+#
 # Copyright 2015-2016 Ian Leonard <antonlacon@gmail.com>
 #
-# This file is foundationalbot.py and is part of the Foundational IRC Bot project.
+# This file is foundationalbot.py and is part of the Foundational IRC Bot
+# project.
 #
 # foundationalbot.py is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, version 3 of the License.
+# it under the terms of the GNU General Public License as published by the
+# Free Software Foundation, version 3 of the License.
 #
-# foundationalbot.py is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
+# foundationalbot.py is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+# more details.
 #
 # You should have received a copy of the GNU General Public License
 # along with foundationalbot.py. If not, see <http://www.gnu.org/licenses/>.
 
 """ ToDo:
-	Proper Python formatting
 	Add timestamp to self-generated messages - write log function to use for messaging - debug module can do it?
-	Timestamp chat messages too?
 	finish !schedule support - will need pytz installed (3rd party) or forget timezones altogether?
 	Twitter integration? - Twitch website has done this?
 	Teach bot to send/receive whispers - Postponed til Whispers 2.0
@@ -33,7 +32,6 @@
 	Stream info commands: uptime, followers, viewers, set status, set game - needs twitch api hookup
 	Pull the command parser out of the main loop parser
 	Simplify command parser - check user's mod status, or whether broadcaster when looking at command?
-	Clean up where variables are declared
 	Reconfigure for multiple channels
 		!join & !leave commands in bot's channel
 		List of channels bot is in
@@ -42,7 +40,7 @@
 		Change sleep method to account for whether it was a mod command sleep, or regular user
 		Strikes on a per channel basis
 		Use a 'channels' db table to track this?
-		Channels table in memory - viewers table on disk?
+			Channels table in memory - viewers table on disk?
 	Rate limiter for JOIN commands
 	Replace the sleep system with a date to determine when the next message or command is allowed?
 		or change the sleep command to sit in an 'if' where messages_sent > 0?
@@ -81,26 +79,25 @@ broadcaster_command_list = [ "!quit", "!exit",
 				"!voice" ]
 #				"!multi",
 
-# TODO move this into message parser
-# Channel name is based on broadcaster's name, so use it to determine broadcaster
-irc_channel_broadcaster = bot_cfg.channel[1:]
-
 # Twitch limits user messages to 20 messages in 30 seconds. Failure to obey = 8-hr ban.
 # Moderators have an increased limit to 100 messages in 30 seconds.
 # Script will detect below whether it is a mod and adjust the rate accordingly
 message_rate = (20/30)
 
-### PARSING VARIABLES AND SUPPORT FUNCTIONS ###
+### PARSING VARIABLES ###
 
 # Regular expressions that will be used frequently so build the regex once to quickly retrieve, use grouping to reuse
-#irc_message_regex = re.compile(r"^@badges=[a-zA-Z0-9_,\/]*;color=[#a-fA-F0-9]*;display-name=([a-zA-Z0-9_\-]*);emotes=[a-zA-Z0-9\-:\/,]*;id=[a-f0-9\-]*;mod=\d+;room-id=\d+;sent-ts=\d+;subscriber=(\d+);tmi-sent-ts=\d+;turbo=\d+;user-id=\d+;user-type=(\w*) :(\w+)!\w+@\w+\.tmi\.twitch\.tv PRIVMSG (#\w+) :")
-#irc_message_regex = re.compile(r"^@.*;display-name=([a-zA-Z0-9_\-]*);.*;mod=\d;.*;subscriber=(\d);.*;user-type=(\w*) :(\w+)!\w+@\w+\.tmi\.twitch\.tv PRIVMSG (#\w+) :")
 irc_message_regex = re.compile(r"^@.*;display-name=(.*?);.*;mod=\d;.*;subscriber=(\d);.*;user-type=(\w*) :(\w+)!\w+@\w+\.tmi\.twitch\.tv PRIVMSG (#\w+) :")
 irc_join_regex = re.compile(r"^:\w+!(\w+)@\w+\.tmi\.twitch\.tv JOIN #\w+")
 irc_userstate_regex = re.compile(r"^@.*;mod=(\d);.* :tmi\.twitch\.tv USERSTATE (#\w+)")
 
-# Strikeout system implementation
+# IRC response buffer (incoming messages)
+irc_response_buffer = ""
+
+### SUPPORT FUNCTIONS ###
+
 def add_user_strike(db_action, irc_socket, user):
+	""" Strikeout system implementation. Adds a strike and checks effects. """
 	user_displayname = fb_sql.db_vt_show_displayname(db_action, user)
 	user_strike_count = fb_sql.db_vt_show_strikes(db_action, user)
 	# hand out the strike and check effects
@@ -131,21 +128,9 @@ def add_user_strike(db_action, irc_socket, user):
 			fb_irc.command_irc_send_message(irc_socket, "Warning: " + user_displayname + " messages purged for chat rule violation." )
 			print ("LOG: Messages from " + user + " purged.")
 
-# Raffle support variables
-raffle_active = False
-raffle_keyword = None
-raffle_contestants = []
-
-# Multistream support variables
-#multistream_url = "http://kadgar.net/live/" + broadcaster + "/"
-#multistream_url_default = multistream_url
-
-# IRC response buffer (incoming messages)
-irc_response_buffer = ""
-
-### INITIALIZE IRC CONNECTION FUNCTION ###
+### NEGOTIATING CONNECTION TO TWITCH ###
 def initialize_irc_connection():
-
+	""" Initialize the IRC connection to Twitch """
 	global active_connection
 	global irc_response_buffer
 	global irc_socket
@@ -176,7 +161,7 @@ def initialize_irc_connection():
 				print(message_line)
 				active_connection = False
 				initial_connection = False
-			# Last line of a successful login to Twitch
+			# Last line of a successful login
 			elif ":tmi.twitch.tv 376 {} :>".format(bot_cfg.bot_handle) in message_line:
 				print(message_line)
 				# Tell Twitch to send full messaging metadata and not plain IRC messages
@@ -188,24 +173,21 @@ def initialize_irc_connection():
 	# pause for rate limiter and the number of messages sent in login process
 	sleep((1 / message_rate) * (config.messages_sent + 3))
 
-### COMMAND PARSER FUNCTION ###
-#def command_parser():
-#	pass
-
-### PARSER LOOP FUNCTION ###
-
-# Implement the main parser loop from which IRC messages are understood
+### PARSER LOOP ###
 def main_parser_loop(db_action):
+	""" The main parser loop that processes messages from the IRC server """
 	# Variables declared outside the function that will change inside the function
 	global active_connection
 	global bot_active
 	global irc_response_buffer
 	global message_rate
-	global raffle_active
-	global raffle_keyword
-	global raffle_contestants
 
 	bot_is_mod = False
+
+	# Raffle support variables
+	raffle_active = False
+	raffle_keyword = None
+	raffle_contestants = []
 
 	# Parser loop
 	while active_connection:
@@ -240,8 +222,7 @@ def main_parser_loop(db_action):
 				user_mod_status = parsed_irc_message.group(3) # is this correct?
 				username = parsed_irc_message.group(4)
 				irc_channel = parsed_irc_message.group(5)
-# TODO: Needed for multichannel support
-#				irc_channel_broadcaster = irc_channel[1:]
+				irc_channel_broadcaster = irc_channel[1:]
 				message = irc_message_regex.sub("", message_line)
 
 				print(now_local_logging + ":" + irc_channel + ":" + username + ": " + message)
@@ -321,6 +302,10 @@ def main_parser_loop(db_action):
 									raffle_contestants[:] = (remaining_contestants for remaining_contestants in raffle_contestants if remaining_contestants != raffle_winner)
 						# Supporting multiple streamers
 #						elif msg[0] == "!multi":
+							# Multistream support variables
+#							multistream_url = "http://kadgar.net/live/" + irc_channel_broadcaster + "/"
+#							multistream_url_default = multistream_url
+#
 #							if len(msg) > 1:
 #								msg[1] = msg[1].strip().lower()
 #								if msg[1] == "add" and len(msg) == 3:
