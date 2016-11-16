@@ -43,7 +43,6 @@
 		Strikes on a per channel basis
 		Use a 'channels' db table to track this?
 			Channels table in memory - viewers table on disk?
-	Rate limiter for JOIN commands
 	Replace the sleep system with a date to determine when the next message or command is allowed?
 		or change the sleep command to sit in an 'if' where messages_sent > 0?
 	There is a risk of exceeding the message/command limit at present - join/part on reconnect
@@ -189,7 +188,6 @@ def main_parser_loop(db_action):
 	# Raffle support variables
 	raffle_active = False
 	raffle_keyword = None
-	raffle_contestants = []
 
 	# Parser loop
 	while active_connection:
@@ -274,7 +272,7 @@ def main_parser_loop(db_action):
 							# Reset all raffle settings
 							elif msg[1] == "clear":
 								print("LOG: Raffle entries cleared.")
-								raffle_contestants.clear()
+								fb_sql.db_vt_reset_all_raffle(db_action)
 								raffle_winner = None
 								raffle_winner_displayname = None
 								raffle_keyword = None
@@ -282,8 +280,8 @@ def main_parser_loop(db_action):
 								fb_irc.command_irc_send_message(irc_socket, "Raffle settings and contestant entries cleared.")
 							# Announce number of entries in pool
 							elif msg[1] == "count":
-								print("LOG: Raffle participants: " + str(len(raffle_contestants)))
-								fb_irc.command_irc_send_message(irc_socket, "Raffle contestants: " + str(len(raffle_contestants)))
+								print("LOG: Raffle participants: " + str(len(fb_sql.db_vt_show_all_raffle(db_action))))
+								fb_irc.command_irc_send_message(irc_socket, "Raffle contestants: " + str(len(fb_sql.db_vt_show_all_raffle(db_action))))
 							# Closing raffle to new entries
 							elif msg[1] == "close":
 								raffle_active = False
@@ -296,15 +294,17 @@ def main_parser_loop(db_action):
 								fb_irc.command_irc_send_message(irc_socket, "Raffle reopened.")
 							# Selecting a winner from the pool
 							elif msg[1] == "winner":
+								raffle_contestants = fb_sql.db_vt_show_all_raffle(db_action)
 								if len(raffle_contestants) == 0:
 									fb_irc.command_irc_send_message(irc_socket, "No winners available; raffle pool is empty.")
 								else:
 									raffle_winner = raffle_contestants[random.randrange(0,len(raffle_contestants),1)]
+									raffle_winner = raffle_winner[0]
 									raffle_winner_displayname = fb_sql.db_vt_show_displayname(db_action, raffle_winner)
 									print("LOG: Raffle winner: " + raffle_winner)
 									fb_irc.command_irc_send_message(irc_socket, "Raffle winner: " + raffle_winner_displayname + ". Winner's chance was: " + str((1/len(raffle_contestants)*100)) + "%")
 									# Only allow winner to win once per raffle
-									raffle_contestants[:] = (remaining_contestants for remaining_contestants in raffle_contestants if remaining_contestants != raffle_winner)
+									fb_sql.db_vt_change_raffle(db_action, raffle_winner)
 						# Supporting multiple streamers
 #						elif msg[0] == "!multi":
 							# Multistream support variables
@@ -366,9 +366,9 @@ def main_parser_loop(db_action):
 				# Raffle monitor
 				# Control with a True/False if raffle is active for faster
 				if raffle_active == True:
-					if message.strip() == raffle_keyword and username not in raffle_contestants:
-						raffle_contestants.append(username)
-						print("LOG: " + username + " is entry number " + str(len(raffle_contestants)))
+					if message.strip() == raffle_keyword and not fb_sql.db_vt_show_raffle(db_action, username):
+						fb_sql.db_vt_change_raffle(db_action, username)
+						print("LOG: " + username + " added to raffle." )
 
 				# Message censor. Employ a strikeout system and ban policy.
 				# TODO Control with a True / False if language monitoring is active
@@ -450,6 +450,9 @@ def main_parser_loop(db_action):
 			# Not an IRC message covered elsewhere
 			else:
 				print(message_line)
+
+# Database debugging
+#			print( fb_sql.db_vt_show_all(db_action) )
 
 			# Rate control on sending messages
 #			print("Messages sent: " + str(config.messages_sent))
