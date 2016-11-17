@@ -28,3 +28,9 @@ message_rate = (20/30)
 
 # Message counter to rate limit messages sent to Twitch
 messages_sent = 0
+
+# Raffle variables
+# Dictionary of channel:true/false
+raffle_active = {}
+# Dictionary of channel:keyword
+raffle_keyword = {}
