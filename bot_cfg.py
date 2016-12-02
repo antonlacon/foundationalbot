@@ -1,10 +1,25 @@
 #!/usr/bin/env python3
-
-# This file is part of the Foundational IRC Bot project.
+# Copyright 2015-2016 Ian Leonard <antonlacon@gmail.com>
+#
+# This file is bot_cfg.py and is part of the Foundational IRC Bot for
+# Twitch.tv project.
+#
+# bot_cfg.py is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 3 of the license.
+#
+# bot_cfg.py is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with bot_cfg.y. If not, see <http://www.gnu.org/licenses/>.
 
 # Twitch IRC variables
 host_server = "irc.twitch.tv"
 host_port = 6667
+bot_admin = "" # the administrator of the bot
 bot_handle = "" # must be lowercase
 bot_password = "" # visit http://twitchapps.com/tmi/ to obtain
 channel = "#" # first character is a hashtag
