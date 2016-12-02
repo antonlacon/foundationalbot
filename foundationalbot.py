@@ -263,18 +263,19 @@ def main_parser_loop(db_action):
 							msg[1] = msg[1].strip().lower()
 							# Setting a watchword to monitor in the channel to look for active viewers
 							if msg[1] == "keyword" and len(msg) == 3:
-								config.raffle_keyword = msg[2].strip()
-								print("LOG: Raffle keyword set to: " + config.raffle_keyword)
-								fb_irc.command_irc_send_message(irc_socket, "Raffle keyword set to: " + config.raffle_keyword)
-								config.raffle_active = True
+								#TODO: clear all raffle entries when assigning new keyword
+								config.raffle_keyword[irc_channel] = msg[2].strip()
+								print("LOG: Raffle keyword set to: " + config.raffle_keyword[irc_channel])
+								fb_irc.command_irc_send_message(irc_socket, "Raffle keyword set to: " + config.raffle_keyword[irc_channel])
+								config.raffle_active[irc_channel] = True
 							# Reset all raffle settings
 							elif msg[1] == "clear":
 								print("LOG: Raffle entries cleared.")
 								fb_sql.db_vt_reset_all_raffle(db_action)
 								raffle_winner = None
 								raffle_winner_displayname = None
-								config.raffle_keyword = None
-								config.raffle_active = False
+								config.raffle_keyword[irc_channel] = None
+								config.raffle_active[irc_channel] = False
 								fb_irc.command_irc_send_message(irc_socket, "Raffle settings and contestant entries cleared.")
 							# Announce number of entries in pool
 							elif msg[1] == "count":
@@ -282,16 +283,17 @@ def main_parser_loop(db_action):
 								fb_irc.command_irc_send_message(irc_socket, "Raffle contestants: " + str(len(fb_sql.db_vt_show_all_raffle(db_action))))
 							# Closing raffle to new entries
 							elif msg[1] == "close":
-								config.raffle_active = False
+								config.raffle_active[irc_channel] = False
 								print("LOG: Raffle closed to further entries.")
 								fb_irc.command_irc_send_message(irc_socket, "Raffle closed to further entries.")
 							# Reopens raffle to entries
 							elif msg[1] == "reopen":
-								config.raffle_active = True
+								config.raffle_active[irc_channel] = True
 								print("LOG: Raffle reopened for entries.")
 								fb_irc.command_irc_send_message(irc_socket, "Raffle reopened.")
 							# Selecting a winner from the pool
 							elif msg[1] == "winner":
+								# FIXME: is this limited to channel's raffle?
 								raffle_contestants = fb_sql.db_vt_show_all_raffle(db_action)
 								if len(raffle_contestants) == 0:
 									fb_irc.command_irc_send_message(irc_socket, "No winners available; raffle pool is empty.")
@@ -362,11 +364,12 @@ def main_parser_loop(db_action):
 							fb_irc.command_irc_send_message(irc_socket, "Stream time is: " + now_local)
 
 				# Raffle monitor
-				if ( config.raffle_active == True and
-				     message.strip() == config.raffle_keyword and
+				if ( irc_channel in config.raffle_active and
+				     config.raffle_active[irc_channel] == True and
+				     message.strip() == config.raffle_keyword[irc_channel] and
 				     not fb_sql.db_vt_show_raffle(db_action, username) ):
 					fb_sql.db_vt_change_raffle(db_action, username)
-					print("LOG: " + username + " added to raffle." )
+					print("LOG: " + username + " added to " + irc_channel + "raffle." )
 
 				# Message censor. Employ a strikeout system and ban policy.
 				# TODO Control with a True / False if language monitoring is active
