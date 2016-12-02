@@ -53,10 +53,22 @@ def command_irc_join(irc_socket, channel):
 	# Rate limit of 50 JOINs in 15 seconds or about 3 per second
 	sleep( 1 / (50 / 15))
 
+def command_irc_join_reconnect(irc_socket, channel):
+	""" Join specified channel without adding to channel list """
+	irc_socket.send("JOIN {}\r\n".format(channel).encode("utf-8"))
+	config.messages_sent += 1
+	# Rate limit of 50 JOINs in 15 seconds or about 3 per second
+	sleep( 1 / (50 / 15))
+
 def command_irc_part(irc_socket, channel):
 	""" Depart specified channel """
 	irc_socket.send("PART {}\r\n".format(channel).encode("utf-8"))
 	config.channels_present.remove(channel)
+	config.messages_sent += 1
+
+def command_irc_part_reconnect(irc_socket, channel):
+	""" Leave channel without removing from channel list """
+	irc_socket.send("PART {}\r\n".format(channel).encode("utf-8"))
 	config.messages_sent += 1
 
 def command_irc_ping_respond(irc_socket):
@@ -68,8 +80,3 @@ def command_irc_quit(irc_socket):
 	""" Leave channel with a departure message """
 	command_irc_send_message(irc_socket, "Shutting down.")
 	command_irc_part(irc_socket, bot_cfg.channel)
-
-def command_irc_reconnect(irc_socket, channel):
-	""" Leave channel without removing from channel list """
-	irc_socket.send("PART {}\r\n".format(channel).encode("utf-8"))
-	config.messages_sent += 1

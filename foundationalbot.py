@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 #
 # Foundational IRC Bot for Twitch.tv
+# Website: https://github.com/antonlacon/foundationalbot
 #
 # Copyright 2015-2016 Ian Leonard <antonlacon@gmail.com>
 #
@@ -33,20 +34,18 @@
 	Pull the command parser out of the main loop parser
 	Simplify command parser - check user's mod status, or whether broadcaster when looking at command?
 	Reconfigure for multiple channels
-		!join & !leave commands in bot's channel
+		Activate !join and !leave commands after multichannel is more fully implemented (mod monitoring)
 		Adjust RECONNECT once command_irc_send_message accepts channel assignment
 		Only join bot's channel on initial login - move other logins to pre-parser loop
 		List of channels bot is in
-			The channel's raffle words
 			Bot's op status in channel
+		Admin user and admin commands
 		Change sleep method to account for whether it was a mod command sleep, or regular user
 		Strikes on a per channel basis
 		Use a 'channels' db table to track this?
-			Channels table in memory - viewers table on disk?
 	Replace the sleep system with a date to determine when the next message or command is allowed?
-		or change the sleep command to sit in an 'if' where messages_sent > 0?
-	There is a risk of exceeding the message/command limit at present - join/part on reconnect
-		while channel list > 50, sleep 1/3(?) of a second between joins
+		Build a command queue into that?
+	Add boolean for adding/removing to the channel list for the join/part irc commands
 """
 
 # Core Modules
@@ -109,9 +108,6 @@ def add_user_strike(db_action, irc_socket, user):
 		fb_irc.command_irc_ban(irc_socket, user)
 		print ("LOG: Banned user per strikeout system: " + user)
 		fb_irc.command_irc_send_message(irc_socket, user_displayname + " banned per strikeout system.")
-		# Delete user from database
-		# TODO: make this a maintenance action instead?
-		fb_sql.db_vt_delete_user(db_action, user)
 	else:
 		# Write updated strike count to database
 		fb_sql.db_vt_change_strikes(db_action, user, user_strike_count)
@@ -138,18 +134,16 @@ def initialize_irc_connection():
 	initial_connection = False
 	config.messages_sent = 0
 
-	# Connect to Twitch and enter chosen channel
-	try:
-		irc_socket = socket.socket()
-		irc_socket.connect((bot_cfg.host_server, bot_cfg.host_port))
-		irc_socket.send("PASS {}\r\n".format(bot_cfg.bot_password).encode("utf-8"))
-		irc_socket.send("NICK {}\r\n".format(bot_cfg.bot_handle).encode("utf-8"))
-		# TODO if config.channels_present isn't empty... loop through entries joining channels
-		fb_irc.command_irc_join(irc_socket, bot_cfg.channel)
+	# Connect to Twitch and enter bot's channel
+	irc_socket = socket.socket()
+	irc_socket.connect((bot_cfg.host_server, bot_cfg.host_port))
+	irc_socket.send("PASS {}\r\n".format(bot_cfg.bot_password).encode("utf-8"))
+	irc_socket.send("NICK {}\r\n".format(bot_cfg.bot_handle).encode("utf-8"))
+	if bot_channel in config.channels_present:
+		fb_irc.command_irc_join_reconnect(irc_socket, bot_channel)
+	else:
 		fb_irc.command_irc_join(irc_socket, bot_channel)
-		initial_connection = True
-	except:
-		raise
+	initial_connection = True
 
 	# Initial login messages
 	# FIXME potential unbound while loop; count number of expected messages and abort if it's reached without connecting?
@@ -186,6 +180,15 @@ def main_parser_loop(db_action):
 	global irc_response_buffer
 
 	bot_is_mod = False
+
+	# Join desired channels - need to read responses?
+	if len(config.channels_present) > 1:
+		for channel in config.channels_present:
+			if channel is not bot_channel:
+				fb_irc.command_irc_join_reconnect(irc_socket, channel)
+	# TODO drop this else clause after multichannel active
+	else:
+		fb_irc.command_irc_join(irc_socket, bot_cfg.channel)
 
 	# Parser loop
 	while active_connection:
@@ -242,8 +245,12 @@ def main_parser_loop(db_action):
 					# Commands only available to broadcaster
 					if msg[0] in broadcaster_command_list and username == irc_channel_broadcaster:
 
+						# Leave channel from message
+						if msg[0] == "!leave" and irc_channel == bot_channel:
+							command_irc_send_message(irc_channel, "So long, and thanks for all the fish!")
+							command_irc_part(irc_channel)
 						# Shutting down the bot in a clean manner
-						if msg[0] == "!quit" or msg[0] == "!exit":
+						elif msg[0] == "!quit" or msg[0] == "!exit":
 							print("LOG: Shutting down on commnd from: " + username)
 							fb_irc.command_irc_quit(irc_socket)
 							irc_socket.close()
@@ -253,9 +260,9 @@ def main_parser_loop(db_action):
 						if msg[0] == "!reconnect":
 							print("LOG: Reconnecting to IRC server on command from: " + username)
 							for channel in config.channels_present:
-								print(channel)
+								# TODO uncomment when message goes to each channel individually
 								#fb_irc.command_irc_send_message(irc_socket, "Ordered to reconnect; will return shortly!")
-								fb_irc.command_irc_reconnect(irc_socket, channel)
+								fb_irc.command_irc_part_reconnect(irc_socket, channel)
 							irc_socket.close()
 							active_connection = False
 						# Raffle support commands
@@ -263,7 +270,8 @@ def main_parser_loop(db_action):
 							msg[1] = msg[1].strip().lower()
 							# Setting a watchword to monitor in the channel to look for active viewers
 							if msg[1] == "keyword" and len(msg) == 3:
-								#TODO: clear all raffle entries when assigning new keyword
+								# Reset raffle status as new keyword entered
+								fb_sql.db_vt_reset_all_raffle(db_action)
 								config.raffle_keyword[irc_channel] = msg[2].strip()
 								print("LOG: Raffle keyword set to: " + config.raffle_keyword[irc_channel])
 								fb_irc.command_irc_send_message(irc_socket, "Raffle keyword set to: " + config.raffle_keyword[irc_channel])
@@ -342,6 +350,10 @@ def main_parser_loop(db_action):
 						# Basic test command to see if bot works
 						if msg[0] == "!test":
 							fb_irc.command_irc_send_message(irc_socket, "All systems nominal.")
+						# Join a channel on request
+						elif msg[0] == "!join" and irc_channel == bot_channel:
+							fb_irc.command_irc_send_message(irc_channel, "Joining: #" + username)
+							fb_irc.command_irc_join("#" + username)
 						# Social media commands
 						elif msg[0] == "!xbl" or msg[0] == "!xb1":
 							fb_irc.command_irc_send_message(irc_socket, "Broadcaster's XBL ID is: " + bot_cfg.xbox_handle)
@@ -372,7 +384,6 @@ def main_parser_loop(db_action):
 					print("LOG: " + username + " added to " + irc_channel + "raffle." )
 
 				# Message censor. Employ a strikeout system and ban policy.
-				# TODO Control with a True / False if language monitoring is active
 				if ( bot_is_mod == True and
 				     username != irc_channel_broadcaster and
 				     user_mod_status == "" ):
@@ -403,7 +414,7 @@ def main_parser_loop(db_action):
 			elif re.search(r" RECONNECT ", message_line):
 				print("LOG: Reconnecting to server based on message from server.")
 				for channel in config.channels_present:
-					fb_irc.command_irc_reconnect(irc_socket, bot_cfg.channel)
+					fb_irc.command_irc_part_reconnect(irc_socket, bot_cfg.channel)
 #					fb_irc.command_irc_send_message(irc_socket, "Ordered to reconnect; will return shortly!")
 				irc_socket.close()
 				active_connection = False

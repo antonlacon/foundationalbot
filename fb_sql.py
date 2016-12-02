@@ -19,16 +19,20 @@
 """ TODO:
 	Split table creation into one that includes channel data(?)
 	Add limit to searches / queries / inserts where channel is taken into account
+	Add a maintenance action where user is deleted from table if strikecount meets limit
 	Teach argument parameters for calling directly:
 		Wipe viewer currency
+		Wipe raffle status
 		Reset all tables
 		verbose debug info(?)
 		Reindex
 """
 
-# Core modules
+# Core Modules
 import sqlite3
 # argparse?
+# Project Modules
+import bot_cfg
 
 ### HELPER FUNCTIONS ###
 
@@ -165,6 +169,10 @@ def db_vt_resetviewers(db_action):
 def db_vt_reset_all_raffle(db_action):
 	""" Reset all viewers' raffle participation. """
 	db_action.execute( "UPDATE Viewers SET Raffle = 0" )
+
+def db_vt_remove_banned_viewers(db_action):
+	""" Remove viewers from table that reached the strikecount limit. """
+	db_action.execute( "DELETE FROM Viewers WHERE Username = ? AND Strikes >= ?", (key_value, bot_cfg.strikes_until_ban,))
 
 ### MAIN ###
 if __name__ == "__main__":
