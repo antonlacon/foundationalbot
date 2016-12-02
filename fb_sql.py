@@ -130,12 +130,10 @@ def db_vt_change_displayname(db_action, key_value, update_value):
 	# if WHERE fails to match any rows, then no rows are updated - does not error
 	db_action.execute( "UPDATE 'Viewers' SET DisplayName = ? WHERE Username = ?", (update_value, key_value,) )
 
-def db_vt_change_strikes(db_action, key_value, increase_amount=1):
-	""" Add a strike to specified user. """
-	strike_count = db_vt_show_strikes(db_action, key_value) + increase_amount
-
+def db_vt_change_strikes(db_action, key_value, strike_value):
+	""" Change strike count of specified user. """
 	# Update database strike count
-	db_action.execute( "UPDATE Viewers SET Strikes = ? WHERE Username = ?", (strike_count, key_value,))
+	db_action.execute( "UPDATE Viewers SET Strikes = ? WHERE Username = ?", (strike_value, key_value,))
 
 def db_vt_change_currency(db_action, key_value, increase_amount):
 	""" Increase a user's currency by the specified value. """

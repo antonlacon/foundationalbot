@@ -114,7 +114,7 @@ def add_user_strike(db_action, irc_socket, user):
 		fb_sql.db_vt_delete_user(db_action, user)
 	else:
 		# Write updated strike count to database
-		fb_sql.db_vt_change_strikes(db_action, user)
+		fb_sql.db_vt_change_strikes(db_action, user, user_strike_count)
 		print ("LOG: Additional strike added to: " + user + ". User's strike count is: " + str(user_strike_count))
 
 		# If user exceeded half of the allowed strikes, give a longer timeout and message in chat
