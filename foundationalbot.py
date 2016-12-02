@@ -37,9 +37,8 @@
 		Activate !join and !leave commands after multichannel is more fully implemented (mod monitoring)
 		Adjust RECONNECT once command_irc_send_message accepts channel assignment
 		Only join bot's channel on initial login - move other logins to pre-parser loop
-		List of channels bot is in
-			Bot's op status in channel
-		Admin user and admin commands
+		Bot's op status in each channel
+		Admin commands
 		Change sleep method to account for whether it was a mod command sleep, or regular user
 		Strikes on a per channel basis
 		Use a 'channels' db table to track this?
@@ -140,7 +139,7 @@ def initialize_irc_connection():
 	irc_socket.send("PASS {}\r\n".format(bot_cfg.bot_password).encode("utf-8"))
 	irc_socket.send("NICK {}\r\n".format(bot_cfg.bot_handle).encode("utf-8"))
 	if bot_channel in config.channels_present:
-		fb_irc.command_irc_join_reconnect(irc_socket, bot_channel)
+		fb_irc.command_irc_join(irc_socket, bot_channel, True)
 	else:
 		fb_irc.command_irc_join(irc_socket, bot_channel)
 	initial_connection = True
@@ -185,7 +184,7 @@ def main_parser_loop(db_action):
 	if len(config.channels_present) > 1:
 		for channel in config.channels_present:
 			if channel is not bot_channel:
-				fb_irc.command_irc_join_reconnect(irc_socket, channel)
+				fb_irc.command_irc_join(irc_socket, channel, True)
 	# TODO drop this else clause after multichannel active
 	else:
 		fb_irc.command_irc_join(irc_socket, bot_cfg.channel)
@@ -262,7 +261,7 @@ def main_parser_loop(db_action):
 							for channel in config.channels_present:
 								# TODO uncomment when message goes to each channel individually
 								#fb_irc.command_irc_send_message(irc_socket, "Ordered to reconnect; will return shortly!")
-								fb_irc.command_irc_part_reconnect(irc_socket, channel)
+								fb_irc.command_irc_part(irc_socket, channel, True)
 							irc_socket.close()
 							active_connection = False
 						# Raffle support commands
@@ -414,7 +413,7 @@ def main_parser_loop(db_action):
 			elif re.search(r" RECONNECT ", message_line):
 				print("LOG: Reconnecting to server based on message from server.")
 				for channel in config.channels_present:
-					fb_irc.command_irc_part_reconnect(irc_socket, bot_cfg.channel)
+					fb_irc.command_irc_part(irc_socket, bot_cfg.channel, True)
 #					fb_irc.command_irc_send_message(irc_socket, "Ordered to reconnect; will return shortly!")
 				irc_socket.close()
 				active_connection = False
