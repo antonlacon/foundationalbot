@@ -115,8 +115,7 @@ def add_user_strike(db_action, irc_socket, user):
 		# If user exceeded half of the allowed strikes, give a longer timeout and message in chat
 		if user_strike_count >= (bot_cfg.strikes_until_ban/2):
 			fb_irc.command_irc_timeout(irc_socket, user, bot_cfg.strikes_timeout_duration)
-			# TODO state how long timeout is in minutes
-			fb_irc.command_irc_send_message(irc_socket, "Warning: " + user_displayname + " in timeout for chat rule violation." )
+			fb_irc.command_irc_send_message(irc_socket, "Warning: " + user_displayname + " in timeout for chat rule violation." + str(bot_cfg.strikes_timeout_duration/60) + " minutes." )
 			print ("LOG: User " + user + " silenced per strikeout policy.")
 		# If user does not have many strikes, clear message(s) and warn
 		else:
