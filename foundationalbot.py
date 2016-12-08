@@ -192,7 +192,11 @@ def main_parser_loop(db_action):
 	while active_connection:
 
 		# Messages being received from the IRC server stored in a buffer in case of incomplete messages
-		irc_response_buffer = irc_response_buffer + irc_socket.recv(1024).decode("utf-8")
+		try:
+			irc_response_buffer = irc_response_buffer + irc_socket.recv(1024).decode("utf-8")
+		except UnicodeDecodeError:
+			print("ERR: Unicode decoding error. Message ignored.")
+			continue
 		irc_response = re.split(r"[~\r\n]+", irc_response_buffer)
 		irc_response_buffer = irc_response.pop()
 
