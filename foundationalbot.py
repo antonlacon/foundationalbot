@@ -3,7 +3,7 @@
 # Foundational IRC Bot for Twitch.tv
 # Website: https://github.com/antonlacon/foundationalbot
 #
-# Copyright 2015-2016 Ian Leonard <antonlacon@gmail.com>
+# Copyright 2015-2017 Ian Leonard <antonlacon@gmail.com>
 #
 # This file is foundationalbot.py and is part of the Foundational IRC Bot
 # project.
@@ -23,7 +23,6 @@
 """ ToDo:
 	Add timestamp to self-generated messages - write log function to use for messaging - debug module can do it?
 	finish !schedule support - will need pytz installed (3rd party) or forget timezones altogether?
-	Twitter integration? - Twitch website has done this?
 	Teach bot to send/receive whispers - Postponed til Whispers 2.0
 	Add website whitelisting - youtube, twitch, wikipedia, ?
 	If raffle is active, format the winner's username differently so it'll be seen in terminal log - color?
@@ -45,6 +44,7 @@
 	Replace the sleep system with a date to determine when the next message or command is allowed?
 		Build a command queue into that?
 	Add boolean for adding/removing to the channel list for the join/part irc commands
+	Update to python 3.6 features: fstrings
 """
 
 # Core Modules
@@ -103,7 +103,7 @@ def add_user_strike(db_action, irc_socket, user):
 	user_strike_count += 1
 
 	# If user reaches the strike limit, hand out a ban
-	if user_strike_count == bot_cfg.strikes_until_ban:
+	if user_strike_count == bot_cfg.strikes_until_ban and bot_cfg.strikes_until_ban != 0:
 		fb_irc.command_irc_ban(irc_socket, user)
 		print ("LOG: Banned user per strikeout system: " + user)
 		fb_irc.command_irc_send_message(irc_socket, user_displayname + " banned per strikeout system.")
@@ -113,7 +113,7 @@ def add_user_strike(db_action, irc_socket, user):
 		print ("LOG: Additional strike added to: " + user + ". User's strike count is: " + str(user_strike_count))
 
 		# If user exceeded half of the allowed strikes, give a longer timeout and message in chat
-		if user_strike_count >= (bot_cfg.strikes_until_ban/2):
+		if user_strike_count >= (bot_cfg.strikes_until_ban/2) and bot_cfg.strikes_until_ban != 0:
 			fb_irc.command_irc_timeout(irc_socket, user, bot_cfg.strikes_timeout_duration)
 			fb_irc.command_irc_send_message(irc_socket, "Warning: " + user_displayname + " in timeout for chat rule violation." + str(bot_cfg.strikes_timeout_duration/60) + " minutes." )
 			print ("LOG: User " + user + " silenced per strikeout policy.")

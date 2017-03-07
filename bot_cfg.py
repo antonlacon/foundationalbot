@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2015-2016 Ian Leonard <antonlacon@gmail.com>
+# Copyright 2015-2017 Ian Leonard <antonlacon@gmail.com>
 #
 # This file is bot_cfg.py and is part of the Foundational IRC Bot for
 # Twitch.tv project.
@@ -43,12 +43,16 @@ twitter_url = ""
 youtube_url = ""
 
 # Language strike out settings
-# Note that the strike count only lasts until bot restarts. Bannings last until cleared in Twitch settings.
+# Note that the strike count only lasts until bot restarts, unless a database file is used.
+# Bans last until cleared in Twitch settings.
 
 # System set up:
 # On first offenses, the message is deleted. User is allowed to continue to send messages.
-# If user used 50% or more of the allowed chances, the user is given a X-second timeout per below
-# When the strike count is reached, the user is banned from the channel
+# If user used 50% or more of the allowed chances, the user is given a X-second timeout per below.
+# When the strike count is reached, the user is banned from the channel.
+#
+# If the strikes_until_ban is set to 0, no bans or long timeouts will be issued;
+# only messages will be removed.
 
 # Ban user on this strike number
 strikes_until_ban = 5
