@@ -100,7 +100,8 @@ def add_user_strike(db_action, irc_socket, user):
 	user_displayname = fb_sql.db_vt_show_displayname(db_action, user)
 	user_strike_count = fb_sql.db_vt_show_strikes(db_action, user)
 	# hand out the strike and check effects
-	user_strike_count += 1
+	if bot_cfg.strikes_until_ban != 0:
+		user_strike_count += 1
 
 	# If user reaches the strike limit, hand out a ban
 	if user_strike_count == bot_cfg.strikes_until_ban and bot_cfg.strikes_until_ban != 0:
