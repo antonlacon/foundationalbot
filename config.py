@@ -16,7 +16,13 @@
 # You should have received a copy of the GNU General Public License along with
 # config.py. If not, see <http://www.gnu.org/licenses/>.
 
-# Channel variables
+# Operating status
+active_connection = False
+bot_active = False
+
+# Bot's home channel
+bot_channel = None
+
 # List of channels bot is in
 channels_present = []
 

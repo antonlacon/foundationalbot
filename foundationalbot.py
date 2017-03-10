@@ -64,7 +64,7 @@ import language_watchlist 	# Bot's file for monitoring language to take action o
 ### START UP VARIABLES ###
 
 # Bot's home channel
-bot_channel = "#" + bot_cfg.bot_handle
+config.bot_channel = "#" + bot_cfg.bot_handle
 
 # Command listing for all users - comma separated
 public_command_list = [ "!test",
@@ -127,7 +127,6 @@ def add_user_strike(db_action, irc_socket, user):
 ### NEGOTIATING CONNECTION TO TWITCH ###
 def initialize_irc_connection():
 	""" Initialize the IRC connection to Twitch """
-	global active_connection
 	global irc_response_buffer
 	global irc_socket
 	initial_connection = False
@@ -138,10 +137,10 @@ def initialize_irc_connection():
 	irc_socket.connect((bot_cfg.host_server, bot_cfg.host_port))
 	irc_socket.send("PASS {}\r\n".format(bot_cfg.bot_password).encode("utf-8"))
 	irc_socket.send("NICK {}\r\n".format(bot_cfg.bot_handle).encode("utf-8"))
-	if bot_channel in config.channels_present:
-		fb_irc.command_irc_join(irc_socket, bot_channel, True)
+	if config.bot_channel in config.channels_present:
+		fb_irc.command_irc_join(irc_socket, config.bot_channel, True)
 	else:
-		fb_irc.command_irc_join(irc_socket, bot_channel)
+		fb_irc.command_irc_join(irc_socket, config.bot_channel)
 	initial_connection = True
 
 	# Initial login messages
@@ -155,14 +154,14 @@ def initialize_irc_connection():
 			# Connected to Twitch IRC server but failed to login (bad user/pass)
 			if ":tmi.twitch.tv NOTICE * :Login unsuccessful" in message_line:
 				print(message_line)
-				active_connection = False
+				config.active_connection = False
 				initial_connection = False
 			# Last line of a successful login
 			elif ":tmi.twitch.tv 376 {} :>".format(bot_cfg.bot_handle) in message_line:
 				print(message_line)
 				# Tell Twitch to send full messaging metadata and not plain IRC messages
 				irc_socket.send("CAP REQ :twitch.tv/tags twitch.tv/commands twitch.tv/membership\r\n".encode("utf-8"))
-				active_connection = True
+				config.active_connection = True
 				initial_connection = False
 			else:
 				print(message_line)
@@ -174,8 +173,6 @@ def main_parser_loop(db_action):
 	""" The main parser loop that processes messages from the IRC server """
 
 	# Variables declared outside the function that will change inside the function
-	global active_connection
-	global bot_active
 	global irc_response_buffer
 
 	bot_is_mod = False
@@ -183,14 +180,14 @@ def main_parser_loop(db_action):
 	# Join desired channels - need to read responses?
 	if len(config.channels_present) > 1:
 		for channel in config.channels_present:
-			if channel is not bot_channel:
+			if channel is not config.bot_channel:
 				fb_irc.command_irc_join(irc_socket, channel, True)
 	# TODO drop this else clause after multichannel active
 	else:
 		fb_irc.command_irc_join(irc_socket, bot_cfg.channel)
 
 	# Parser loop
-	while active_connection:
+	while config.active_connection:
 
 		# Messages being received from the IRC server stored in a buffer in case of incomplete messages
 		try:
@@ -249,7 +246,7 @@ def main_parser_loop(db_action):
 					if msg[0] in broadcaster_command_list and username == irc_channel_broadcaster:
 
 						# Leave channel from message
-						if msg[0] == "!leave" and irc_channel == bot_channel:
+						if msg[0] == "!leave" and irc_channel == config.bot_channel:
 							command_irc_send_message(irc_channel, "So long, and thanks for all the fish!")
 							command_irc_part(irc_channel)
 						# Shutting down the bot in a clean manner
@@ -257,8 +254,8 @@ def main_parser_loop(db_action):
 							print("LOG: Shutting down on commnd from: " + username)
 							fb_irc.command_irc_quit(irc_socket)
 							irc_socket.close()
-							active_connection = False
-							bot_active = False
+							config.active_connection = False
+							config.bot_active = False
 						# Tell bot to quit and reconnect - for test purposes
 						if msg[0] == "!reconnect":
 							print("LOG: Reconnecting to IRC server on command from: " + username)
@@ -267,7 +264,7 @@ def main_parser_loop(db_action):
 								#fb_irc.command_irc_send_message(irc_socket, "Ordered to reconnect; will return shortly!")
 								fb_irc.command_irc_part(irc_socket, channel, True)
 							irc_socket.close()
-							active_connection = False
+							config.active_connection = False
 						# Raffle support commands
 						elif msg[0] == "!raffle" and len(msg) > 1:
 							msg[1] = msg[1].strip().lower()
@@ -354,7 +351,7 @@ def main_parser_loop(db_action):
 						if msg[0] == "!test":
 							fb_irc.command_irc_send_message(irc_socket, "All systems nominal.")
 						# Join a channel on request
-						elif msg[0] == "!join" and irc_channel == bot_channel:
+						elif msg[0] == "!join" and irc_channel == config.bot_channel:
 							fb_irc.command_irc_send_message(irc_channel, "Joining: #" + username)
 							fb_irc.command_irc_join("#" + username)
 						# Social media commands
@@ -420,7 +417,7 @@ def main_parser_loop(db_action):
 					fb_irc.command_irc_part(irc_socket, bot_cfg.channel, True)
 #					fb_irc.command_irc_send_message(irc_socket, "Ordered to reconnect; will return shortly!")
 				irc_socket.close()
-				active_connection = False
+				config.active_connection = False
 
 			# Add viewers to database on join
 			elif re.search(r" JOIN ", message_line):
@@ -476,11 +473,11 @@ def main_parser_loop(db_action):
 ### MAIN ###
 if __name__ == "__main__":
 
-	# bot_active controls whether the bot should shut down all activities and exit
+	# config.bot_active controls whether the bot should shut down all activities and exit
 	# intial_connection puts the bot in the startup login phase
-	# active_connection makes the main parser loop active going through server messages
+	# config.active_connection makes the main parser loop active going through server messages
 
-	bot_active = True
+	config.bot_active = True
 
 	### CONNECT TO SQLITE DATABSE ###
 	# Connect to sqlite database and store connection information
@@ -489,7 +486,7 @@ if __name__ == "__main__":
 	fb_sql.db_vt_createtable(db_action)
 	# count the rows
 
-	while bot_active:
+	while config.bot_active:
 
 		### START EXTERNAL CONNECTION ###
 		initialize_irc_connection()
