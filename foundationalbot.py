@@ -66,23 +66,6 @@ import language_watchlist 	# Bot's file for monitoring language to take action o
 # Bot's home channel
 config.bot_channel = "#" + bot_cfg.bot_handle
 
-# Command listing for all users - comma separated
-public_command_list = [ "!test",
-		"!xbl", "!xb1",
-		"!psn", "!ps4",
-		"!steam",
-		"!youtube",
-		"!twitter",
-		"!schedule",
-		"!time" ]
-
-# Broadcaster only commands - comma separated
-broadcaster_command_list = [ "!quit", "!exit",
-				"!raffle",
-				"!reconnect",
-				"!voice" ]
-#				"!multi",
-
 ### PARSING VARIABLES ###
 
 # Regular expressions that will be used frequently so build the regex once to quickly retrieve, use grouping to reuse
@@ -243,7 +226,7 @@ def main_parser_loop(db_action):
 					msg[0] = msg[0].lower()
 
 					# Commands only available to broadcaster
-					if msg[0] in broadcaster_command_list and username == irc_channel_broadcaster:
+					if username == irc_channel_broadcaster:
 
 						# Leave channel from message
 						if msg[0] == "!leave" and irc_channel == config.bot_channel:
@@ -344,36 +327,34 @@ def main_parser_loop(db_action):
 							pardoned_user = msg[1].strip().lower()
 							fb_irc.command_irc_unban(irc_socket, pardoned_user)
 
-					# Commands available to anyone
-					elif msg[0] in public_command_list:
-
-						# Basic test command to see if bot works
-						if msg[0] == "!test":
-							fb_irc.command_irc_send_message(irc_socket, "All systems nominal.")
-						# Join a channel on request
-						elif msg[0] == "!join" and irc_channel == config.bot_channel:
-							fb_irc.command_irc_send_message(irc_channel, "Joining: #" + username)
-							fb_irc.command_irc_join("#" + username)
-						# Social media commands
-						elif msg[0] == "!xbl" or msg[0] == "!xb1":
-							fb_irc.command_irc_send_message(irc_socket, "Broadcaster's XBL ID is: " + bot_cfg.xbox_handle)
-						elif msg[0] == "!psn" or msg[0] == "!ps4":
-							fb_irc.command_irc_send_message(irc_socket, "Broadcaster's PSN ID is: " + bot_cfg.playstation_handle)
-						elif msg[0] == "!steam":
-							fb_irc.command_irc_send_message(irc_socket, "Broadcaster's Steam ID is: " + bot_cfg.steam_handle +  " and profile is: " + bot_cfg.steam_url)
-						elif msg[0] == "!twitter":
-							fb_irc.command_irc_send_message(irc_socket, "Broadcaster's twitter url is: " + bot_cfg.twitter_url)
-						elif msg[0] == "!youtube":
-							fb_irc.command_irc_send_message(irc_socket, "Select broadcasts, highlights and other videos may be found on YouTube: " + bot_cfg.youtube_url)
-						# State bot's current time and time to next broadcast
-						elif msg[0] == "!schedule":
-							now_local_day = datetime.now().strftime("%A")
-							now_local = datetime.now().strftime("%I:%M%p")
-#							now_utc = datetime.utcnow().strftime("%A %I:%M%p")
-							fb_irc.command_irc_send_message(irc_socket, "Current stream time is: " + now_local_day + " " + now_local + ". Today's schedule is: " + bot_cfg.broadcaster_schedule[now_local_day])
-						elif msg[0] == "!time":
-							now_local = datetime.now().strftime("%A %I:%M%p")
-							fb_irc.command_irc_send_message(irc_socket, "Stream time is: " + now_local)
+					# Commands available to all
+					# Basic test command to see if bot works
+					if msg[0] == "!test":
+						fb_irc.command_irc_send_message(irc_socket, "All systems nominal.")
+					# Join a channel on request
+					elif msg[0] == "!join" and irc_channel == config.bot_channel:
+						fb_irc.command_irc_send_message(irc_channel, "Joining: #" + username)
+						fb_irc.command_irc_join("#" + username)
+					# Social media commands
+					elif msg[0] == "!xbl" or msg[0] == "!xb1":
+						fb_irc.command_irc_send_message(irc_socket, "Broadcaster's XBL ID is: " + bot_cfg.xbox_handle)
+					elif msg[0] == "!psn" or msg[0] == "!ps4":
+						fb_irc.command_irc_send_message(irc_socket, "Broadcaster's PSN ID is: " + bot_cfg.playstation_handle)
+					elif msg[0] == "!steam":
+						fb_irc.command_irc_send_message(irc_socket, "Broadcaster's Steam ID is: " + bot_cfg.steam_handle +  " and profile is: " + bot_cfg.steam_url)
+					elif msg[0] == "!twitter":
+						fb_irc.command_irc_send_message(irc_socket, "Broadcaster's twitter url is: " + bot_cfg.twitter_url)
+					elif msg[0] == "!youtube":
+						fb_irc.command_irc_send_message(irc_socket, "Select broadcasts, highlights and other videos may be found on YouTube: " + bot_cfg.youtube_url)
+					# State bot's current time and time to next broadcast
+					elif msg[0] == "!schedule":
+						now_local_day = datetime.now().strftime("%A")
+						now_local = datetime.now().strftime("%I:%M%p")
+#						now_utc = datetime.utcnow().strftime("%A %I:%M%p")
+						fb_irc.command_irc_send_message(irc_socket, "Current stream time is: " + now_local_day + " " + now_local + ". Today's schedule is: " + bot_cfg.broadcaster_schedule[now_local_day])
+					elif msg[0] == "!time":
+						now_local = datetime.now().strftime("%A %I:%M%p")
+						fb_irc.command_irc_send_message(irc_socket, "Stream time is: " + now_local)
 
 				# Raffle monitor
 				if ( irc_channel in config.raffle_active and
