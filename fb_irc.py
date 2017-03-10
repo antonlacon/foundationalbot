@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright 2016 Ian Leonard <antonlacon@gmail.com>
+# Copyright 2016-2017 Ian Leonard <antonlacon@gmail.com>
 #
 # This file is fb_irc.py and is part of the Foundational IRC Bot for Twitch.tv
 # project.
@@ -28,45 +28,45 @@ import config		# Variables shared between modules
 
 ### IRC COMMANDS ###
 
-def command_irc_send_message(irc_socket, msg):
+def command_irc_send_message(msg):
 	""" Send a message to the specified channel """
-	irc_socket.send("PRIVMSG {} :{}\r\n".format(bot_cfg.channel, msg).encode("utf-8"))
+	config.irc_socket.send("PRIVMSG {} :{}\r\n".format(bot_cfg.channel, msg).encode("utf-8"))
 	config.messages_sent += 1
 
-def command_irc_ban(irc_socket, user):
+def command_irc_ban(user):
 	""" Ban a user from the specified channel """
-	command_irc_send_message(irc_socket, ".ban {}".format(user))
+	command_irc_send_message(".ban {}".format(user))
 
-def command_irc_timeout(irc_socket, user, seconds=600):
+def command_irc_timeout(user, seconds=600):
 	""" Silence a user in the specified channel for X seconds (default 10 minutes) """
-	command_irc_send_message(irc_socket, ".timeout {}".format(user, seconds))
+	command_irc_send_message(".timeout {}".format(user, seconds))
 
-def command_irc_unban(irc_socket, user):
+def command_irc_unban(user):
 	""" Unban or unsilence a user in the specified channel """
-	command_irc_send_message(irc_socket, ".unban {}".format(user))
+	command_irc_send_message(".unban {}".format(user))
 
-def command_irc_join(irc_socket, channel, reconnect=False):
+def command_irc_join(channel, reconnect=False):
 	""" Join specified channel """
-	irc_socket.send("JOIN {}\r\n".format(channel).encode("utf-8"))
+	config.irc_socket.send("JOIN {}\r\n".format(channel).encode("utf-8"))
 	if reconnect == False:
 		config.channels_present.append(channel)
 	config.messages_sent += 1
 	# Rate limit of 50 JOINs in 15 seconds or about 3 per second
 	sleep( 1 / (50 / 15))
 
-def command_irc_part(irc_socket, channel, reconnect=False):
+def command_irc_part(channel, reconnect=False):
 	""" Depart specified channel """
-	irc_socket.send("PART {}\r\n".format(channel).encode("utf-8"))
+	config.irc_socket.send("PART {}\r\n".format(channel).encode("utf-8"))
 	if reconnect == False:
 		config.channels_present.remove(channel)
 	config.messages_sent += 1
 
-def command_irc_ping_respond(irc_socket):
+def command_irc_ping_respond():
 	""" Response to PINGs from the server """
-	irc_socket.send("PONG :tmi.twitch.tv\r\n".encode("utf-8"))
+	config.irc_socket.send("PONG :tmi.twitch.tv\r\n".encode("utf-8"))
 	config.messages_sent += 1
 
-def command_irc_quit(irc_socket):
+def command_irc_quit():
 	""" Leave channel with a departure message """
-	command_irc_send_message(irc_socket, "Shutting down.")
-	command_irc_part(irc_socket, bot_cfg.channel)
+	command_irc_send_message("Shutting down.")
+	command_irc_part(config.irc_socket, bot_cfg.channel)

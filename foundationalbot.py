@@ -78,7 +78,7 @@ irc_response_buffer = ""
 
 ### SUPPORT FUNCTIONS ###
 
-def add_user_strike(db_action, irc_socket, user):
+def add_user_strike(db_action, user):
 	""" Strikeout system implementation. Adds a strike and checks effects. """
 	user_displayname = fb_sql.db_vt_show_displayname(db_action, user)
 	user_strike_count = fb_sql.db_vt_show_strikes(db_action, user)
@@ -88,9 +88,9 @@ def add_user_strike(db_action, irc_socket, user):
 
 	# If user reaches the strike limit, hand out a ban
 	if user_strike_count == bot_cfg.strikes_until_ban and bot_cfg.strikes_until_ban != 0:
-		fb_irc.command_irc_ban(irc_socket, user)
+		fb_irc.command_irc_ban(user)
 		print ("LOG: Banned user per strikeout system: " + user)
-		fb_irc.command_irc_send_message(irc_socket, user_displayname + " banned per strikeout system.")
+		fb_irc.command_irc_send_message(user_displayname + " banned per strikeout system.")
 	else:
 		# Write updated strike count to database
 		fb_sql.db_vt_change_strikes(db_action, user, user_strike_count)
@@ -98,38 +98,37 @@ def add_user_strike(db_action, irc_socket, user):
 
 		# If user exceeded half of the allowed strikes, give a longer timeout and message in chat
 		if user_strike_count >= (bot_cfg.strikes_until_ban/2) and bot_cfg.strikes_until_ban != 0:
-			fb_irc.command_irc_timeout(irc_socket, user, bot_cfg.strikes_timeout_duration)
-			fb_irc.command_irc_send_message(irc_socket, "Warning: " + user_displayname + " in timeout for chat rule violation." + str(bot_cfg.strikes_timeout_duration/60) + " minutes." )
+			fb_irc.command_irc_timeout(user, bot_cfg.strikes_timeout_duration)
+			fb_irc.command_irc_send_message("Warning: " + user_displayname + " in timeout for chat rule violation." + str(bot_cfg.strikes_timeout_duration/60) + " minutes." )
 			print ("LOG: User " + user + " silenced per strikeout policy.")
 		# If user does not have many strikes, clear message(s) and warn
 		else:
-			fb_irc.command_irc_timeout(irc_socket, user, 1)
-			fb_irc.command_irc_send_message(irc_socket, "Warning: " + user_displayname + " messages purged for chat rule violation." )
+			fb_irc.command_irc_timeout(user, 1)
+			fb_irc.command_irc_send_message("Warning: " + user_displayname + " messages purged for chat rule violation." )
 			print ("LOG: Messages from " + user + " purged.")
 
 ### NEGOTIATING CONNECTION TO TWITCH ###
 def initialize_irc_connection():
 	""" Initialize the IRC connection to Twitch """
 	global irc_response_buffer
-	global irc_socket
 	initial_connection = False
 	config.messages_sent = 0
 
 	# Connect to Twitch and enter bot's channel
-	irc_socket = socket.socket()
-	irc_socket.connect((bot_cfg.host_server, bot_cfg.host_port))
-	irc_socket.send("PASS {}\r\n".format(bot_cfg.bot_password).encode("utf-8"))
-	irc_socket.send("NICK {}\r\n".format(bot_cfg.bot_handle).encode("utf-8"))
+	config.irc_socket = socket.socket()
+	config.irc_socket.connect((bot_cfg.host_server, bot_cfg.host_port))
+	config.irc_socket.send("PASS {}\r\n".format(bot_cfg.bot_password).encode("utf-8"))
+	config.irc_socket.send("NICK {}\r\n".format(bot_cfg.bot_handle).encode("utf-8"))
 	if config.bot_channel in config.channels_present:
-		fb_irc.command_irc_join(irc_socket, config.bot_channel, True)
+		fb_irc.command_irc_join(config.bot_channel, True)
 	else:
-		fb_irc.command_irc_join(irc_socket, config.bot_channel)
+		fb_irc.command_irc_join(config.bot_channel)
 	initial_connection = True
 
 	# Initial login messages
 	# FIXME potential unbound while loop; count number of expected messages and abort if it's reached without connecting?
 	while initial_connection:
-		irc_response_buffer = irc_response_buffer + irc_socket.recv(1024).decode("utf-8")
+		irc_response_buffer = irc_response_buffer + config.irc_socket.recv(1024).decode("utf-8")
 		irc_response = re.split(r"[~\r\n]+", irc_response_buffer)
 		irc_response_buffer = irc_response.pop()
 
@@ -143,7 +142,7 @@ def initialize_irc_connection():
 			elif ":tmi.twitch.tv 376 {} :>".format(bot_cfg.bot_handle) in message_line:
 				print(message_line)
 				# Tell Twitch to send full messaging metadata and not plain IRC messages
-				irc_socket.send("CAP REQ :twitch.tv/tags twitch.tv/commands twitch.tv/membership\r\n".encode("utf-8"))
+				config.irc_socket.send("CAP REQ :twitch.tv/tags twitch.tv/commands twitch.tv/membership\r\n".encode("utf-8"))
 				config.active_connection = True
 				initial_connection = False
 			else:
@@ -164,17 +163,17 @@ def main_parser_loop(db_action):
 	if len(config.channels_present) > 1:
 		for channel in config.channels_present:
 			if channel is not config.bot_channel:
-				fb_irc.command_irc_join(irc_socket, channel, True)
+				fb_irc.command_irc_join(channel, True)
 	# TODO drop this else clause after multichannel active
 	else:
-		fb_irc.command_irc_join(irc_socket, bot_cfg.channel)
+		fb_irc.command_irc_join(bot_cfg.channel)
 
 	# Parser loop
 	while config.active_connection:
 
 		# Messages being received from the IRC server stored in a buffer in case of incomplete messages
 		try:
-			irc_response_buffer = irc_response_buffer + irc_socket.recv(1024).decode("utf-8")
+			irc_response_buffer = irc_response_buffer + config.irc_socket.recv(1024).decode("utf-8")
 		except UnicodeDecodeError:
 			print("ERR: Unicode decoding error. Message ignored.")
 			continue
@@ -191,7 +190,7 @@ def main_parser_loop(db_action):
 
 			# Twitch will check that clients are still alive; respond with PONG
 			if message_line == "PING :tmi.twitch.tv":
-				fb_irc.command_irc_ping_respond(irc_socket)
+				fb_irc.command_irc_ping_respond()
 				print("LOG: Received PING. Sent PONG.")
 
 			# Majority of parsing will be done on PRIVMSGs from the server
@@ -235,8 +234,8 @@ def main_parser_loop(db_action):
 						# Shutting down the bot in a clean manner
 						elif msg[0] == "!quit" or msg[0] == "!exit":
 							print("LOG: Shutting down on commnd from: " + username)
-							fb_irc.command_irc_quit(irc_socket)
-							irc_socket.close()
+							fb_irc.command_irc_quit()
+							config.irc_socket.close()
 							config.active_connection = False
 							config.bot_active = False
 						# Tell bot to quit and reconnect - for test purposes
@@ -244,9 +243,9 @@ def main_parser_loop(db_action):
 							print("LOG: Reconnecting to IRC server on command from: " + username)
 							for channel in config.channels_present:
 								# TODO uncomment when message goes to each channel individually
-								#fb_irc.command_irc_send_message(irc_socket, "Ordered to reconnect; will return shortly!")
-								fb_irc.command_irc_part(irc_socket, channel, True)
-							irc_socket.close()
+								#fb_irc.command_irc_send_message("Ordered to reconnect; will return shortly!")
+								fb_irc.command_irc_part(channel, True)
+							config.irc_socket.close()
 							config.active_connection = False
 						# Raffle support commands
 						elif msg[0] == "!raffle" and len(msg) > 1:
@@ -257,7 +256,7 @@ def main_parser_loop(db_action):
 								fb_sql.db_vt_reset_all_raffle(db_action)
 								config.raffle_keyword[irc_channel] = msg[2].strip()
 								print("LOG: Raffle keyword set to: " + config.raffle_keyword[irc_channel])
-								fb_irc.command_irc_send_message(irc_socket, "Raffle keyword set to: " + config.raffle_keyword[irc_channel])
+								fb_irc.command_irc_send_message("Raffle keyword set to: " + config.raffle_keyword[irc_channel])
 								config.raffle_active[irc_channel] = True
 							# Reset all raffle settings
 							elif msg[1] == "clear":
@@ -267,33 +266,33 @@ def main_parser_loop(db_action):
 								raffle_winner_displayname = None
 								config.raffle_keyword[irc_channel] = None
 								config.raffle_active[irc_channel] = False
-								fb_irc.command_irc_send_message(irc_socket, "Raffle settings and contestant entries cleared.")
+								fb_irc.command_irc_send_message("Raffle settings and contestant entries cleared.")
 							# Announce number of entries in pool
 							elif msg[1] == "count":
 								print("LOG: Raffle participants: " + str(len(fb_sql.db_vt_show_all_raffle(db_action))))
-								fb_irc.command_irc_send_message(irc_socket, "Raffle contestants: " + str(len(fb_sql.db_vt_show_all_raffle(db_action))))
+								fb_irc.command_irc_send_message("Raffle contestants: " + str(len(fb_sql.db_vt_show_all_raffle(db_action))))
 							# Closing raffle to new entries
 							elif msg[1] == "close":
 								config.raffle_active[irc_channel] = False
 								print("LOG: Raffle closed to further entries.")
-								fb_irc.command_irc_send_message(irc_socket, "Raffle closed to further entries.")
+								fb_irc.command_irc_send_message("Raffle closed to further entries.")
 							# Reopens raffle to entries
 							elif msg[1] == "reopen":
 								config.raffle_active[irc_channel] = True
 								print("LOG: Raffle reopened for entries.")
-								fb_irc.command_irc_send_message(irc_socket, "Raffle reopened.")
+								fb_irc.command_irc_send_message("Raffle reopened.")
 							# Selecting a winner from the pool
 							elif msg[1] == "winner":
 								# FIXME: is this limited to channel's raffle?
 								raffle_contestants = fb_sql.db_vt_show_all_raffle(db_action)
 								if len(raffle_contestants) == 0:
-									fb_irc.command_irc_send_message(irc_socket, "No winners available; raffle pool is empty.")
+									fb_irc.command_irc_send_message("No winners available; raffle pool is empty.")
 								else:
 									raffle_winner = raffle_contestants[random.randrange(0,len(raffle_contestants),1)]
 									raffle_winner = raffle_winner[0]
 									raffle_winner_displayname = fb_sql.db_vt_show_displayname(db_action, raffle_winner)
 									print("LOG: Raffle winner: " + raffle_winner)
-									fb_irc.command_irc_send_message(irc_socket, "Raffle winner: " + raffle_winner_displayname + ". Winner's chance was: " + str((1/len(raffle_contestants)*100)) + "%")
+									fb_irc.command_irc_send_message("Raffle winner: " + raffle_winner_displayname + ". Winner's chance was: " + str((1/len(raffle_contestants)*100)) + "%")
 									# Only allow winner to win once per raffle
 									fb_sql.db_vt_change_raffle(db_action, raffle_winner)
 						# Supporting multiple streamers
@@ -307,54 +306,55 @@ def main_parser_loop(db_action):
 #								if msg[1] == "add" and len(msg) == 3:
 #									multistream_url = multistream_url + msg[2].strip() + "/"
 #									print("LOG: Multistream URL set to: " + multistream_url)
-#									fb_irc.command_irc_send_message(irc_socket, "Multistream URL set to: " + multistream_url)
+#									fb_irc.command_irc_send_message("Multistream URL set to: " + multistream_url)
 #								elif msg[1] == "set" and len(msg) == 3:
 #									if msg[2].lower() == "default":
 #										multistream_url = multistream_url_default
 #										print("LOG: Multistream URl reset to default.")
-#										fb_irc.command_irc_send_message(irc_socket, "Multistream URL reset to default.")
+#										fb_irc.command_irc_send_message("Multistream URL reset to default.")
 #									else:
 #										multistream_url = msg[2].strip()
 #										print("LOG: Multistream URL set to: " + multistream_url)
-#										fb_irc.command_irc_send_message(irc_socket, "Multistream URL set to: " + multistream_url)
+#										fb_irc.command_irc_send_message("Multistream URL set to: " + multistream_url)
 #								else:
 #									print("LOG: Unknown usage of !multi.")
-#									fb_irc.command_irc_send_message(irc_socket, "Unknown usage of !multi.")
+#									fb_irc.command_irc_send_message("Unknown usage of !multi.")
 #							else:
-#								fb_irc.command_irc_send_message(irc_socket, "Multistream URL is: " + multistream_url)
+#								fb_irc.command_irc_send_message("Multistream URL is: " + multistream_url)
 						# Return voice to a user in a timeout or ban
 						elif msg[0] == "!voice" and len(msg) == 2:
 							pardoned_user = msg[1].strip().lower()
-							fb_irc.command_irc_unban(irc_socket, pardoned_user)
+							fb_irc.command_irc_unban(pardoned_user)
+							del pardoned_user
 
 					# Commands available to all
 					# Basic test command to see if bot works
 					if msg[0] == "!test":
-						fb_irc.command_irc_send_message(irc_socket, "All systems nominal.")
+						fb_irc.command_irc_send_message("All systems nominal.")
 					# Join a channel on request
 					elif msg[0] == "!join" and irc_channel == config.bot_channel:
 						fb_irc.command_irc_send_message(irc_channel, "Joining: #" + username)
 						fb_irc.command_irc_join("#" + username)
 					# Social media commands
 					elif msg[0] == "!xbl" or msg[0] == "!xb1":
-						fb_irc.command_irc_send_message(irc_socket, "Broadcaster's XBL ID is: " + bot_cfg.xbox_handle)
+						fb_irc.command_irc_send_message("Broadcaster's XBL ID is: " + bot_cfg.xbox_handle)
 					elif msg[0] == "!psn" or msg[0] == "!ps4":
-						fb_irc.command_irc_send_message(irc_socket, "Broadcaster's PSN ID is: " + bot_cfg.playstation_handle)
+						fb_irc.command_irc_send_message("Broadcaster's PSN ID is: " + bot_cfg.playstation_handle)
 					elif msg[0] == "!steam":
-						fb_irc.command_irc_send_message(irc_socket, "Broadcaster's Steam ID is: " + bot_cfg.steam_handle +  " and profile is: " + bot_cfg.steam_url)
+						fb_irc.command_irc_send_message("Broadcaster's Steam ID is: " + bot_cfg.steam_handle +  " and profile is: " + bot_cfg.steam_url)
 					elif msg[0] == "!twitter":
-						fb_irc.command_irc_send_message(irc_socket, "Broadcaster's twitter url is: " + bot_cfg.twitter_url)
+						fb_irc.command_irc_send_message("Broadcaster's twitter url is: " + bot_cfg.twitter_url)
 					elif msg[0] == "!youtube":
-						fb_irc.command_irc_send_message(irc_socket, "Select broadcasts, highlights and other videos may be found on YouTube: " + bot_cfg.youtube_url)
+						fb_irc.command_irc_send_message("Select broadcasts, highlights and other videos may be found on YouTube: " + bot_cfg.youtube_url)
 					# State bot's current time and time to next broadcast
 					elif msg[0] == "!schedule":
 						now_local_day = datetime.now().strftime("%A")
 						now_local = datetime.now().strftime("%I:%M%p")
 #						now_utc = datetime.utcnow().strftime("%A %I:%M%p")
-						fb_irc.command_irc_send_message(irc_socket, "Current stream time is: " + now_local_day + " " + now_local + ". Today's schedule is: " + bot_cfg.broadcaster_schedule[now_local_day])
+						fb_irc.command_irc_send_message("Current stream time is: " + now_local_day + " " + now_local + ". Today's schedule is: " + bot_cfg.broadcaster_schedule[now_local_day])
 					elif msg[0] == "!time":
 						now_local = datetime.now().strftime("%A %I:%M%p")
-						fb_irc.command_irc_send_message(irc_socket, "Stream time is: " + now_local)
+						fb_irc.command_irc_send_message("Stream time is: " + now_local)
 
 				# Raffle monitor
 				if ( irc_channel in config.raffle_active and
@@ -371,13 +371,13 @@ def main_parser_loop(db_action):
 					for language_control_test in language_watchlist.prohibited_words:
 						if re.search(language_control_test, message):
 
-							add_user_strike(db_action, irc_socket, username)
+							add_user_strike(db_action, username)
 							print ("LOG: " + username +" earned a strike for violating the language watchlist.")
 
 					# Messages longer than a set length in all uppercase count as a strike
 					if ( len(message) >= bot_cfg.uppercase_message_suppress_length and
 					     message == message.upper() ):
-						add_user_strike(db_action, irc_socket, username)
+						add_user_strike(db_action, username)
 						print ("LOG: " + username + " earned a timeout for a message in all capitals. Strike added.")
 
 			# Monitor MODE messages to detect if bot gains or loses moderator status
@@ -395,9 +395,9 @@ def main_parser_loop(db_action):
 			elif re.search(r" RECONNECT ", message_line):
 				print("LOG: Reconnecting to server based on message from server.")
 				for channel in config.channels_present:
-					fb_irc.command_irc_part(irc_socket, bot_cfg.channel, True)
-#					fb_irc.command_irc_send_message(irc_socket, "Ordered to reconnect; will return shortly!")
-				irc_socket.close()
+					fb_irc.command_irc_part(bot_cfg.channel, True)
+#					fb_irc.command_irc_send_message("Ordered to reconnect; will return shortly!")
+				config.irc_socket.close()
 				config.active_connection = False
 
 			# Add viewers to database on join

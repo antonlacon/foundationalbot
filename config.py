@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright 2016 Ian Leonard <antonlacon@gmail.com>
+# Copyright 2016-2017 Ian Leonard <antonlacon@gmail.com>
 #
 # This file is config.py and is part of the Foundational IRC Bot project.
 #
@@ -19,6 +19,7 @@
 # Operating status
 active_connection = False
 bot_active = False
+irc_socket = None
 
 # Bot's home channel
 bot_channel = None
