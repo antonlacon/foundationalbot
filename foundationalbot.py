@@ -44,6 +44,7 @@
 	Replace the sleep system with a date to determine when the next message or command is allowed?
 		Build a command queue into that?
 	Add boolean for adding/removing to the channel list for the join/part irc commands
+	Delete variables when finished with them?
 	Update to python 3.6 features: fstrings
 """
 
@@ -199,14 +200,19 @@ def main_parser_loop(db_action):
 #				print(message_line)
 
 				# Channel message parsing - other variables possible if grouping is adjusted
-				parsed_irc_message = irc_message_regex.search(message_line)
-				user_display_name = parsed_irc_message.group(1)
-				user_subscriber_status = parsed_irc_message.group(2)
-				user_mod_status = parsed_irc_message.group(3) # is this correct?
-				username = parsed_irc_message.group(4)
-				irc_channel = parsed_irc_message.group(5)
-				irc_channel_broadcaster = irc_channel[1:]
-				message = irc_message_regex.sub("", message_line)
+				try:
+					parsed_irc_message = irc_message_regex.search(message_line)
+					user_display_name = parsed_irc_message.group(1)
+					user_subscriber_status = parsed_irc_message.group(2)
+					user_mod_status = parsed_irc_message.group(3) # is this correct?
+					username = parsed_irc_message.group(4)
+					irc_channel = parsed_irc_message.group(5)
+					irc_channel_broadcaster = irc_channel[1:]
+					message = irc_message_regex.sub("", message_line)
+				except:
+					print("ERR: "+ now_local_logging + ": Unparsable chat message")
+					print(message_line)
+					continue
 
 				print(now_local_logging + ":" + irc_channel + ":" + username + ": " + message)
 
@@ -224,15 +230,10 @@ def main_parser_loop(db_action):
 					# Force to lowercase for parsing
 					msg[0] = msg[0].lower()
 
-					# Commands only available to broadcaster
-					if username == irc_channel_broadcaster:
-
-						# Leave channel from message
-						if msg[0] == "!leave" and irc_channel == config.bot_channel:
-							command_irc_send_message(irc_channel, "So long, and thanks for all the fish!")
-							command_irc_part(irc_channel)
+					# Bot Administrator Commands
+					if username == bot_cfg.bot_admin:
 						# Shutting down the bot in a clean manner
-						elif msg[0] == "!quit" or msg[0] == "!exit":
+						if msg[0] == "!quit" or msg[0] == "!exit":
 							print("LOG: Shutting down on commnd from: " + username)
 							fb_irc.command_irc_quit()
 							config.irc_socket.close()
@@ -247,6 +248,13 @@ def main_parser_loop(db_action):
 								fb_irc.command_irc_part(channel, True)
 							config.irc_socket.close()
 							config.active_connection = False
+
+					# Broadcaster Commands
+					if username == irc_channel_broadcaster:
+						# Leave channel from message
+						if msg[0] == "!leave" and irc_channel == config.bot_channel:
+							command_irc_send_message(irc_channel, "So long, and thanks for all the fish!")
+							command_irc_part(irc_channel)
 						# Raffle support commands
 						elif msg[0] == "!raffle" and len(msg) > 1:
 							msg[1] = msg[1].strip().lower()
@@ -425,6 +433,7 @@ def main_parser_loop(db_action):
 					bot_is_mod = False
 					config.message_rate = (20/30)
 
+# TODO alphabetize
 			# Ignore the following:
 			# PART: People leaving the chat room
 			# GLOBALUSERSTATE: ?

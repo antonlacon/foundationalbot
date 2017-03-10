@@ -19,6 +19,8 @@
 # Operating status
 active_connection = False
 bot_active = False
+
+# Communication Routes
 irc_socket = None
 
 # Bot's home channel

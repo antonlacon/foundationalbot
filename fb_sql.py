@@ -25,7 +25,8 @@
 		Wipe raffle status
 		Reset all tables
 		verbose debug info(?)
-		Reindex
+		Reindex & Vacuum
+	Move the database cursor into config.py
 """
 
 # Core Modules
@@ -162,6 +163,7 @@ def db_vt_resetallcurrency(db_action):
 	""" Reset all viewers' currency to 0. """
 	db_action.execute( "UPDATE Viewers SET Currency = 0" )
 
+# TODO convert to generic table drop
 def db_vt_resetviewers(db_action):
 	""" Globally wipe the Viewer table data. """
 	db_action.execute( "DROP TABLE IF EXISTS Viewers" )
