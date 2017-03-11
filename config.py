@@ -22,6 +22,7 @@ bot_active = False
 
 # Communication Routes
 irc_socket = None
+db_action = None
 
 # Bot's home channel
 bot_channel = None

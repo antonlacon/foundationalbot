@@ -79,10 +79,10 @@ irc_response_buffer = ""
 
 ### SUPPORT FUNCTIONS ###
 
-def add_user_strike(db_action, user):
+def add_user_strike(user):
 	""" Strikeout system implementation. Adds a strike and checks effects. """
-	user_displayname = fb_sql.db_vt_show_displayname(db_action, user)
-	user_strike_count = fb_sql.db_vt_show_strikes(db_action, user)
+	user_displayname = fb_sql.db_vt_show_displayname(user)
+	user_strike_count = fb_sql.db_vt_show_strikes(user)
 	# hand out the strike and check effects
 	if bot_cfg.strikes_until_ban != 0:
 		user_strike_count += 1
@@ -94,7 +94,7 @@ def add_user_strike(db_action, user):
 		fb_irc.command_irc_send_message(user_displayname + " banned per strikeout system.")
 	else:
 		# Write updated strike count to database
-		fb_sql.db_vt_change_strikes(db_action, user, user_strike_count)
+		fb_sql.db_vt_change_strikes(user, user_strike_count)
 		print ("LOG: Additional strike added to: " + user + ". User's strike count is: " + str(user_strike_count))
 
 		# If user exceeded half of the allowed strikes, give a longer timeout and message in chat
@@ -152,7 +152,7 @@ def initialize_irc_connection():
 	sleep((1 / config.message_rate) * (config.messages_sent + 3))
 
 ### PARSER LOOP ###
-def main_parser_loop(db_action):
+def main_parser_loop():
 	""" The main parser loop that processes messages from the IRC server """
 
 	# Variables declared outside the function that will change inside the function
@@ -217,11 +217,11 @@ def main_parser_loop(db_action):
 				print(now_local_logging + ":" + irc_channel + ":" + username + ": " + message)
 
 				# Add username to database in case message sent before JOIN message
-				if fb_sql.db_vt_test_username(db_action, username) == False:
-					fb_sql.db_vt_addentry(db_action, username, user_display_name)
+				if fb_sql.db_vt_test_username(username) == False:
+					fb_sql.db_vt_addentry(username, user_display_name)
 				# Viewer may have been added to DB by JOIN message, or changed their displayname; update it
-				elif user_display_name != fb_sql.db_vt_show_displayname(db_action, username):
-					fb_sql.db_vt_change_displayname(db_action, username, user_display_name)
+				elif user_display_name != fb_sql.db_vt_show_displayname(username):
+					fb_sql.db_vt_change_displayname(username, user_display_name)
 
 				# Command Parser - if changing commands, remember to adjust the command listings at top
 				if message.startswith("!"):
@@ -231,8 +231,8 @@ def main_parser_loop(db_action):
 				if ( irc_channel in config.raffle_active and
 				     config.raffle_active[irc_channel] == True and
 				     message.strip() == config.raffle_keyword[irc_channel] and
-				     not fb_sql.db_vt_show_raffle(db_action, username) ):
-					fb_sql.db_vt_change_raffle(db_action, username)
+				     not fb_sql.db_vt_show_raffle(username) ):
+					fb_sql.db_vt_change_raffle(username)
 					print("LOG: " + username + " added to " + irc_channel + "raffle." )
 
 				# Message censor. Employ a strikeout system and ban policy.
@@ -242,13 +242,13 @@ def main_parser_loop(db_action):
 					for language_control_test in language_watchlist.prohibited_words:
 						if re.search(language_control_test, message):
 
-							add_user_strike(db_action, username)
+							add_user_strike(username)
 							print ("LOG: " + username +" earned a strike for violating the language watchlist.")
 
 					# Messages longer than a set length in all uppercase count as a strike
 					if ( len(message) >= bot_cfg.uppercase_message_suppress_length and
 					     message == message.upper() ):
-						add_user_strike(db_action, username)
+						add_user_strike(username)
 						print ("LOG: " + username + " earned a timeout for a message in all capitals. Strike added.")
 
 			# Monitor MODE messages to detect if bot gains or loses moderator status
@@ -278,8 +278,8 @@ def main_parser_loop(db_action):
 				username = parsed_irc_message.group(1)
 
 				# Add username to database if not present
-				if fb_sql.db_vt_test_username(db_action, username) == False:
-					fb_sql.db_vt_addentry(db_action, username)
+				if fb_sql.db_vt_test_username(username) == False:
+					fb_sql.db_vt_addentry(username)
 
 			# Check USERSTATE for moderator status
 			elif re.search(r" USERSTATE ", message_line):
@@ -317,7 +317,7 @@ def main_parser_loop(db_action):
 				print(message_line)
 
 # Database debugging
-#			print( fb_sql.db_vt_show_all(db_action) )
+#			print( fb_sql.db_vt_show_all() )
 
 			# Rate control on sending messages
 #			print("Messages sent: " + str(config.messages_sent))
@@ -334,9 +334,9 @@ if __name__ == "__main__":
 
 	### CONNECT TO SQLITE DATABSE ###
 	# Connect to sqlite database and store connection information
-	db_connection, db_action = fb_sql.db_initialize()
+	db_connection = fb_sql.db_initialize()
 	# create a Viewers table if it does not already exist
-	fb_sql.db_vt_createtable(db_action)
+	fb_sql.db_vt_createtable()
 	# count the rows
 
 	while config.bot_active:
@@ -345,10 +345,10 @@ if __name__ == "__main__":
 		initialize_irc_connection()
 
 		### LOOP THROUGH MESSAGES FROM SERVER TO TAKE ACTION ###
-		main_parser_loop(db_action)
+		main_parser_loop()
 
 	# Loop broken; time to close things down
-	print( fb_sql.db_vt_show_all(db_action) )
+	print( fb_sql.db_vt_show_all() )
 	# give feedback from db - # of rows, change from start?
 	fb_sql.db_shutdown(db_connection)
 	exit(0)

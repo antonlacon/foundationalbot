@@ -63,7 +63,7 @@ def command_parser(username, user_mod_status, irc_channel, message):
 			# Setting a watchword to monitor for in the channel to look for active viewers
 			if msg[1] == "keyword" and len(msg) == 3:
 				# Reset raffle status as new keyword entered
-				fb_sql.db_vt_reset_all_raffle(db_action)
+				fb_sql.db_vt_reset_all_raffle()
 				config.raffle_keyword[irc_channel] = msg[2].strip()
 				print("LOG: Raffle keyword set to: " + config.raffle_keyword[irc_channel])
 				fb_irc.command_irc_send_message("Raffle keyword set to: " + config.raffle_keyword[irc_channel])
@@ -72,7 +72,7 @@ def command_parser(username, user_mod_status, irc_channel, message):
 			elif msg[1] == "clear":
 				# TODO limit to channel's raffle
 				print("LOG: Raffle entries cleared.")
-				fb_sql.db_vt_reset_all_raffle(db_action)
+				fb_sql.db_vt_reset_all_raffle()
 				raffle_winner = None
 				raffle_winner_displayname = None
 				config.raffle_keyword[irc_channel] = None
@@ -95,17 +95,17 @@ def command_parser(username, user_mod_status, irc_channel, message):
 			# Selecting a winner from the pool
 			elif msg[1] == "winner":
 				# TODO is this limited to channel's raffle?
-				raffle_contestants = fb_sql.db_vt_show_all_raffle(db_action)
+				raffle_contestants = fb_sql.db_vt_show_all_raffle()
 				if len(raffle_contestants) == 0:
 					fb_irc.command_irc_send_message("No winners available; raffle pool is empty.")
 				else:
 					raffle_winner = raffle_contestants[random.randrange(0,len(raffle_contestants),1)]
 					raffle_winner = raffle_winner[0]
-					raffle_winner_displayname = fb_sql.db_vt_show_displayname(db_action, raffle_winner)
+					raffle_winner_displayname = fb_sql.db_vt_show_displayname(raffle_winner)
 					print("LOG: Raffle winner: " + raffle_winner)
 					fb_irc.command_irc_send_message("Raffle winner: " + raffle_winner_displayname + ". Winner's chance was: " + str((1/len(raffle_contestants)*100)) + "%")
 					# Only allow winner to win once per raffle
-					fb_sql.db_vt_change_raffle(db_action, raffle_winner)
+					fb_sql.db_vt_change_raffle(raffle_winner)
 			# Supporting multiple streamers
 #			elif msg[0] == "!multi":
 				# Multistream support variables
