@@ -7,9 +7,11 @@ A basic chat bot for use by Twitch broadcasters to aid in the production of thei
 This bot is functional, but a work in progress for additional planned features.
 
 # Chat Commands
-## Broadcaster
+## Administrator
 * !exit or !quit: Shutdown the bot
 * !reconnect: Order bot to close and reopen network connection (here for testing)
+
+## Broadcaster
 * !raffle: Commands to run a raffle, or otherwise pick a random participating member of chat
 	* !raffle keyword string: Open the raffle and monitor viewers' chat messages for string to add them to the raffle drawing
 	* !raffle clear: Reset the raffle to a blank state
@@ -40,6 +42,6 @@ To be written
 ## Strikeout System
 The bot works on a strike out system leading up to an eventual ban when enough strikes are accrued. The necessary strikes are set by the bot administrator.
 ## ALL CAPS
-Chat messages longer than a (configured) length will be suppressed. Each such message earns a strike.
+Chat messages longer than a (configured) length in all capital letters will be suppressed. Each such message earns a strike.
 ## Webpage address shorteners / lengtheners
-Viewers should know where the address they click on from other viewers is taking them. Prohibit messages that obfuscate those addresses. The Broadcaster, moderators, and the bot are exempt from this.
+Viewers should know where the address they click on from other viewers is taking them. Prohibit messages that obfuscate those addresses. The administrator, broadcaster, moderators, and the bot are exempt from this.

@@ -16,18 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with fb_sql.py. If not, see <http://www.gnu.org/licenses/>.
 
-""" TODO:
-	Split table creation into one that includes channel data(?)
-	Add limit to searches / queries / inserts where channel is taken into account
-	Add a maintenance action where user is deleted from table if strikecount meets limit
-	Teach argument parameters for calling directly:
-		Wipe viewer currency
-		Wipe raffle status
-		Reset all tables
-		verbose debug info(?)
-		Reindex & Vacuum
-"""
-
 # Core Modules
 import sqlite3	# Python's sqlite module
 # argparse?

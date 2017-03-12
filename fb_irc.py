@@ -16,10 +16,6 @@
 # You should have received a copy of the GNU General Public License along with
 # fb_irc.py. If not, see <http://www.gnu.org/licenses>.
 
-""" TODO:
-	Is the bot_cfg import necessary after multichannel?
-"""
-
 # Core Modules
 from time import sleep	# sleep() command
 # Project Modules

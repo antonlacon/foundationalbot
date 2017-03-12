@@ -20,34 +20,6 @@
 # You should have received a copy of the GNU General Public License
 # along with foundationalbot.py. If not, see <http://www.gnu.org/licenses/>.
 
-""" ToDo:
-	Add timestamp to self-generated messages - write log function to use for messaging - debug module can do it?
-	finish !schedule support - will need pytz installed (3rd party) or forget timezones altogether?
-	Teach bot to send/receive whispers - Postponed til Whispers 2.0
-	Add website whitelisting - youtube, twitch, wikipedia, ?
-	If raffle is active, format the winner's username differently so it'll be seen in terminal log - color?
-	Have raffles show subscriber status if that's the case - how long they have followed?
-	Timed messages to channel - youtube, twitter, ?
-	Add a reset command - resets raffle settings, multi settings, and clears strikeout list
-	Stream info commands: uptime, followers, viewers, set status, set game - needs twitch api hookup
-	Pull the command parser out of the main loop parser
-	Simplify command parser - check user's mod status, or whether broadcaster when looking at command?
-	Reconfigure for multiple channels
-		Activate !join and !leave commands after multichannel is more fully implemented (mod monitoring)
-		Adjust RECONNECT once command_irc_send_message accepts channel assignment
-		Only join bot's channel on initial login - move other logins to pre-parser loop
-		Bot's op status in each channel
-		Admin commands
-		Change sleep method to account for whether it was a mod command sleep, or regular user
-		Strikes on a per channel basis
-		Use a 'channels' db table to track this?
-	Replace the sleep system with a date to determine when the next message or command is allowed?
-		Build a command queue into that?
-	Add boolean for adding/removing to the channel list for the join/part irc commands
-	Delete variables when finished with them?
-	Update to python 3.6 features: fstrings
-"""
-
 # Core Modules
 import socket 			# IRC networking
 import re 			# Regular expression parsing to parse chat messages
