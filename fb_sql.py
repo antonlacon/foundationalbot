@@ -17,11 +17,11 @@
 # along with fb_sql.py. If not, see <http://www.gnu.org/licenses/>.
 
 # Core Modules
-import sqlite3	# Python's sqlite module
+import sqlite3				# Python's sqlite module
 # argparse?
 # Project Modules
-import bot_cfg	# Bot's config file
-import config	# Variables shared between modules
+from bot_cfg import strikes_until_ban	# Only need the max strike count
+import config				# Variables shared between modules
 
 ### HELPER FUNCTIONS ###
 
@@ -162,7 +162,7 @@ def db_vt_reset_all_raffle():
 
 def db_vt_remove_banned_viewers():
 	""" Remove viewers from table that reached the strikecount limit. """
-	config.db_action.execute( "DELETE FROM Viewers WHERE Username = ? AND Strikes >= ?", (key_value, bot_cfg.strikes_until_ban,))
+	config.db_action.execute( "DELETE FROM Viewers WHERE Username = ? AND Strikes >= ?", (key_value, strikes_until_ban,))
 
 ### MAIN ###
 if __name__ == "__main__":

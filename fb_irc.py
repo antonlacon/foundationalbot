@@ -17,16 +17,16 @@
 # fb_irc.py. If not, see <http://www.gnu.org/licenses>.
 
 # Core Modules
-from time import sleep	# sleep() command
+from time import sleep		# sleep() command
 # Project Modules
-import bot_cfg		# Bot configuration
-import config		# Variables shared between modules
+from bot_cfg import channel	# Only need the channel from bot_cfg
+import config			# Variables shared between modules
 
 ### IRC COMMANDS ###
 
 def command_irc_send_message(msg):
 	""" Send a message to the specified channel """
-	config.irc_socket.send("PRIVMSG {} :{}\r\n".format(bot_cfg.channel, msg).encode("utf-8"))
+	config.irc_socket.send("PRIVMSG {} :{}\r\n".format(channel, msg).encode("utf-8"))
 	config.messages_sent += 1
 
 def command_irc_ban(user):
@@ -65,4 +65,4 @@ def command_irc_ping_respond():
 def command_irc_quit():
 	""" Leave channel with a departure message """
 	command_irc_send_message("Shutting down.")
-	command_irc_part(config.irc_socket, bot_cfg.channel)
+	command_irc_part(config.irc_socket, channel)

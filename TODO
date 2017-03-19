@@ -9,11 +9,13 @@ Core:
 	Whispers (private messages)
 		accept commands from there too			
 		send whispers too
+		Needs to be whitelisted by Twitch for sending similar messages - antispam?
 	Time Messages to channel
 		follow? youtube? twitter?
 	Implement logging / debug / error message levels
 		include timestamps
 	Multichannel work
+		Needs threading and queue work which requires classes
 		Get !schedule to account for timezones or differences for each channel
 		!join and !leave comamnds working correctly
 		Adjust RECONNECT once irc_send_message accepts channel assignment
@@ -28,8 +30,6 @@ Core:
 Command Parser:
 	Integrate user_mod_status in command parser
 	Add a !reset command - clears channel strikes, raffle settings, multi settings?
-IRC:
-	Does it need to import bot_cfg?
 SQL:
 	Adjust table creation into one that includes channel data(?)
 		Add limit to searches / queires / inserts where channel is taken into account
