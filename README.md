@@ -28,9 +28,6 @@ To be written
 To be written
 
 ## Viewer
-* Following the broadcaster outside of Twitch
-	* !twitter: Send broadcaster's Twitter name to chat
-	* !youtube: Send broadcaster's YouTube channel to chat
 * Gaming with the broadcaster
 	* !psn or !ps4: Send PSN name to chat
 	* !steam: Send Steam name to chat

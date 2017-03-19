@@ -36,11 +36,7 @@ broadcaster_schedule = { "Monday" : "abc",
 # Social media settings
 xbox_handle = ""
 playstation_handle = ""
-#playstation_trophy_url = "" # need to sign up first at playstation's site
 steam_handle = ""
-steam_url = ""
-twitter_url = ""
-youtube_url = ""
 
 # Language strike out settings
 # Note that the strike count only lasts until bot restarts, unless a database file is used.

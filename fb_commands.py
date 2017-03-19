@@ -54,11 +54,11 @@ def command_parser(username, user_mod_status, irc_channel, message):
 	# Broadcaster Commands
 	if username == irc_channel_broadcaster:
 		# Leave channel from message
-		if msg[0] == "!leave" and irc_channel in config.channels_present:
-			fb_irc.command_irc_send_message(irc_channel, "So long, and thanks for all the fish!")
-			fb_irc.command_irc_part(irc_channel)
+#		if msg[0] == "!leave" and irc_channel in config.channels_present:
+#			fb_irc.command_irc_send_message(irc_channel, "So long, and thanks for all the fish!")
+#			fb_irc.command_irc_part(irc_channel)
 		# Raffle support commands
-		elif msg[0] == "!raffle" and len(msg) > 1:
+		if msg[0] == "!raffle" and len(msg) > 1:
 			msg[1] = msg[1].strip().lower()
 			# Setting a watchword to monitor for in the channel to look for active viewers
 			if msg[1] == "keyword" and len(msg) == 3:
@@ -151,19 +151,15 @@ def command_parser(username, user_mod_status, irc_channel, message):
 	# Commands available to everyone
 	if msg[0] == "!test":
 		fb_irc.command_irc_send_message("All systems nominal.")
-	elif msg[0] == "!join" and irc_channel == config.bot_channel:
-		fb_irc.command_irc_send_message(irc_channel, "Joining: #" + username)
-		fb_irc.command_irc_join("#" + username)
+#	elif msg[0] == "!join" and irc_channel == config.bot_channel:
+#		fb_irc.command_irc_send_message(irc_channel, "Joining: #" + username)
+#		fb_irc.command_irc_join("#" + username)
 	elif msg[0] == "!xbl" or msg[0] == "!xb1":
 		fb_irc.command_irc_send_message("Broadcaster's XBL ID is: " + bot_cfg.xbox_handle)
 	elif msg[0] == "!psn" or msg[0] == "!ps4":
 		fb_irc.command_irc_send_message("Broadcaster's PSN ID is: " + bot_cfg.playstation_handle)
 	elif msg[0] == "!steam":
 		fb_irc.command_irc_send_message("Broadcaster's Steam ID is: " + bot_cfg.steam_handle)
-	elif msg[0] == "!twitter":
-		fb_irc.command_irc_send_message("Broadcaster's Twitter URL is: " + bot_cfg.twitter_url)
-	elif msg[0] == "!youtube":
-		fb_irc.command_irc_send_message("Select broadcasts, highlights and other videos may be found on YouTube:" + bot_cfg.youtube_url)
 	elif msg[0] == "!schedule":
 		now_local_day = datetime.now().strftime("%A")
 		now_local = datetime.now().strftime("%I:%M%p")
