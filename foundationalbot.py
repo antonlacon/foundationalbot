@@ -83,7 +83,7 @@ def add_user_strike(user):
 ### NEGOTIATING CONNECTION TO TWITCH ###
 def initialize_irc_connection():
 	""" Initialize the IRC connection to Twitch """
-	global irc_response_buffer
+	irc_response_buffer = ""
 	initial_connection = False
 	config.messages_sent = 0
 
@@ -126,10 +126,7 @@ def initialize_irc_connection():
 ### PARSER LOOP ###
 def main_parser_loop():
 	""" The main parser loop that processes messages from the IRC server """
-
-	# Variables declared outside the function that will change inside the function
-	global irc_response_buffer
-
+	irc_response_buffer = ""
 	bot_is_mod = False
 
 	# Join desired channels - need to read responses?
