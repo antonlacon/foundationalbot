@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2015-2017 Ian Leonard <antonlacon@gmail.com>
+# Copyright 2015-2018 Ian Leonard <antonlacon@gmail.com>
 #
 # This file is bot_cfg.py and is part of the Foundational IRC Bot for
 # Twitch.tv project.
@@ -21,17 +21,19 @@ host_server = "irc.twitch.tv"
 host_port = 6667
 bot_admin = "" # the administrator of the bot
 bot_handle = "" # must be lowercase
-bot_password = "" # visit http://twitchapps.com/tmi/ to obtain
+bot_password = "oauth:" # visit http://twitchapps.com/tmi/ to obtain
 channel = "#" # first character is a hashtag
 
 # Stream Schedule
-broadcaster_schedule = { "Monday" : "abc",
-                        "Tuesday" : "def",
-                        "Wednesday" : "ghi",
-                        "Thursday" : "jkl",
-                        "Friday" : "mno",
-                        "Saturday" : "pqr",
-                        "Sunday" : "stu" }
+broadcaster_schedule = {
+    "Monday" : "abc",
+    "Tuesday" : "def",
+    "Wednesday" : "ghi",
+    "Thursday" : "jkl",
+    "Friday" : "mno",
+    "Saturday" : "pqr",
+    "Sunday" : "stu"
+    }
 
 # Social media settings
 xbox_handle = ""
@@ -40,7 +42,7 @@ steam_handle = ""
 
 # Language strike out settings
 # Note that the strike count only lasts until bot restarts, unless a database file is used.
-# Bans last until cleared in Twitch settings.
+# Bans last until cleared in Twitch channel settings.
 
 # System set up:
 # On first offenses, the message is deleted. User is allowed to continue to send messages.

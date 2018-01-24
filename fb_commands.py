@@ -17,13 +17,13 @@
 # along with fb_commands.py. If not, see <http://www.gnu.org/licenses/>.
 
 # Core Modules
-import random			# Random number generator for raffle
-from datetime import datetime	# date functions
+import random                   # Random number generator for raffle
+from datetime import datetime   # date functions
 # Project Modules
-import bot_cfg			# Bot's config file
-import config			# Variables shared between modules
-import fb_irc			# IRC commands
-import fb_sql			# SQLite database interaction
+import bot_cfg                  # Bot's config file
+import config                   # Variables shared between modules
+import fb_irc                   # IRC commands
+import fb_sql                   # SQLite database interaction
 
 def command_parser(username, user_mod_status, irc_channel, message):
 	irc_channel_broadcaster = irc_channel[1:]
@@ -164,7 +164,9 @@ def command_parser(username, user_mod_status, irc_channel, message):
 		now_local_day = datetime.now().strftime("%A")
 		now_local = datetime.now().strftime("%I:%M%p")
 		now_utc = datetime.utcnow().strftime("%A %I:%M%p")
-		fb_irc.command_irc_send_message(f"Current stream time is: {now_local_day} {now_local}. Today's schedule is: {bot_cfg.broadcaster_schedule[now_local_day]}.")
+		fb_irc.command_irc_send_message(
+            f"Current stream time is: {now_local_day} {now_local}. Today's schedule is: {bot_cfg.broadcaster_schedule[now_local_day]}."
+            )
 	elif msg[0] == "!time":
 		now_local = datetime.now().strftime("%A %I:%M%p")
 		fb_irc.command_irc_send_message(f"Stream time is: {now_local}")

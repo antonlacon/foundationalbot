@@ -16,6 +16,8 @@
 # You should have received a copy of the GNU General Public License along with
 # config.py. If not, see <http://www.gnu.org/licenses/>.
 
+# All of these variables are set / changed while the Bot is running
+
 # Operating status
 active_connection = False
 bot_active = False
