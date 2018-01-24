@@ -3,7 +3,7 @@
 # Foundational IRC Bot for Twitch.tv
 # Website: https://github.com/antonlacon/foundationalbot
 #
-# Copyright 2015-2017 Ian Leonard <antonlacon@gmail.com>
+# Copyright 2015-2018 Ian Leonard <antonlacon@gmail.com>
 #
 # This file is foundationalbot.py and is part of the Foundational IRC Bot
 # project.
@@ -106,20 +106,17 @@ def initialize_irc_connection():
 		irc_response_buffer = irc_response.pop()
 
 		for message_line in irc_response:
+			print(message_line)
 			# Connected to Twitch IRC server but failed to login (bad user/pass)
 			if ":tmi.twitch.tv NOTICE * :Login unsuccessful" in message_line:
-				print(message_line)
 				config.active_connection = False
 				initial_connection = False
 			# Last line of a successful login
 			elif ":tmi.twitch.tv 376 {} :>".format(bot_cfg.bot_handle) in message_line:
-				print(message_line)
 				# Tell Twitch to send full messaging metadata and not plain IRC messages
 				config.irc_socket.send("CAP REQ :twitch.tv/tags twitch.tv/commands twitch.tv/membership\r\n".encode("utf-8"))
 				config.active_connection = True
 				initial_connection = False
-			else:
-				print(message_line)
 	# pause for rate limiter and the number of messages sent in login process
 	sleep((1 / config.message_rate) * (config.messages_sent + 3))
 
