@@ -1,7 +1,7 @@
 Foundational Twitch Chat Bot
 ======
 
-A basic chat bot for use by Twitch broadcasters to aid in the production of their channels.
+A basic chat bot for use by Twitch broadcasters to aid in the production of their channels. It requires at least Python 3.6.
 
 # Status
 This bot is functional, but a work in progress for additional planned features.

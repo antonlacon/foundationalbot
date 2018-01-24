@@ -24,7 +24,6 @@ Core:
 		Per channel stikes
 		Adjust sleep to account for whether it had mod privileges for the message or not (sleep duration)
 	Format raffle winner's name differently in log (color?)
-	Make use of Python 3.6 features when available: fstrings
 	Try a sleep system using date to determine when next message / command is allowed?
 		Utilize a command queue
 Command Parser:

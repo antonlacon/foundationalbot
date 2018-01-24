@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2015-2017 Ian Leonard <antonlacon@gmail.com>
+# Copyright 2015-2018 Ian Leonard <antonlacon@gmail.com>
 #
 # This file is fb_commands.py and is part of the Foundational IRC Bot for
 # Twitch.tv project.
@@ -36,14 +36,14 @@ def command_parser(username, user_mod_status, irc_channel, message):
 	if username == bot_cfg.bot_admin:
 		# Shut down the bot in a clean manner
 		if msg[0] == "!quit" or msg[0] == "!exit":
-			print("LOG: Shutting down on command from: " + username)
+			print(f"LOG: Shutting down on command from: {username}")
 			fb_irc.command_irc_quit()
 			config.irc_socket.close()
 			config.active_connection = False
 			config.bot_active = False
 		# Quit and reconnect to Twitch (test command)
 		elif msg[0] == "!reconnect":
-			print("LOG: Reconnecting to IRC server on command from: " + username)
+			print(f"LOG: Reconnecting to IRC server on command from: {username}")
 			for channel in config.channels_present:
 				# TODO send status message to each channel saying will reconnect
 				#fb_irc.command_irc_send_message("Ordered to reconnect; will return shortly!")
@@ -65,8 +65,8 @@ def command_parser(username, user_mod_status, irc_channel, message):
 				# Reset raffle status as new keyword entered
 				fb_sql.db_vt_reset_all_raffle()
 				config.raffle_keyword[irc_channel] = msg[2].strip()
-				print("LOG: Raffle keyword set to: " + config.raffle_keyword[irc_channel])
-				fb_irc.command_irc_send_message("Raffle keyword set to: " + config.raffle_keyword[irc_channel])
+				print(f"LOG: Raffle keyword set to: {config.raffle_keyword[irc_channel]}")
+				fb_irc.command_irc_send_message(f"Raffle keyword set to: {config.raffle_keyword[irc_channel]}")
 				config.raffle_active[irc_channel] = True
 			# Rest all raffle settings
 			elif msg[1] == "clear":
@@ -80,8 +80,8 @@ def command_parser(username, user_mod_status, irc_channel, message):
 				fb_irc.command_irc_send_message("Raffle settings and contestant entries cleared.")
 			# Announce number of entries in pool
 			elif msg[1] == "count":
-				print("LOG: Raffle participants: " + str(len(fb_sql.db_vt_show_all_raffle())))
-				fb_irc.command_irc_send_message("Raffle contestants: " + str(len(fb_sql.db_vt_show_all_raffle())))
+				print(f"LOG: Raffle participants: {str(len(fb_sql.db_vt_show_all_raffle()))}")
+				fb_irc.command_irc_send_message(f"Raffle contestants: {str(len(fb_sql.db_vt_show_all_raffle()))}")
 			# Closing raffle to new entries
 			elif msg[1] == "close":
 				config.raffle_active[irc_channel] = False
@@ -102,8 +102,8 @@ def command_parser(username, user_mod_status, irc_channel, message):
 					raffle_winner = raffle_contestants[random.randrange(0,len(raffle_contestants),1)]
 					raffle_winner = raffle_winner[0]
 					raffle_winner_displayname = fb_sql.db_vt_show_displayname(raffle_winner)
-					print("LOG: Raffle winner: " + raffle_winner)
-					fb_irc.command_irc_send_message("Raffle winner: " + raffle_winner_displayname + ". Winner's chance was: " + str((1/len(raffle_contestants)*100)) + "%")
+					print(f"LOG: Raffle winner: {raffle_winner}")
+					fb_irc.command_irc_send_message(f"Raffle winner: {raffle_winner_displayname}. Winner's chance was: {str((1/len(raffle_contestants)*100))}%")
 					# Only allow winner to win once per raffle
 					fb_sql.db_vt_change_raffle(raffle_winner)
 			# Supporting multiple streamers
@@ -152,19 +152,19 @@ def command_parser(username, user_mod_status, irc_channel, message):
 	if msg[0] == "!test":
 		fb_irc.command_irc_send_message("All systems nominal.")
 #	elif msg[0] == "!join" and irc_channel == config.bot_channel:
-#		fb_irc.command_irc_send_message(irc_channel, "Joining: #" + username)
-#		fb_irc.command_irc_join("#" + username)
+#		fb_irc.command_irc_send_message(irc_channel, f"Joining: #{username}")
+#		fb_irc.command_irc_join(f"#{username}")
 	elif msg[0] == "!xbl" or msg[0] == "!xb1":
-		fb_irc.command_irc_send_message("Broadcaster's XBL ID is: " + bot_cfg.xbox_handle)
+		fb_irc.command_irc_send_message(f"Broadcaster's XBL ID is: {bot_cfg.xbox_handle}")
 	elif msg[0] == "!psn" or msg[0] == "!ps4":
-		fb_irc.command_irc_send_message("Broadcaster's PSN ID is: " + bot_cfg.playstation_handle)
+		fb_irc.command_irc_send_message(f"Broadcaster's PSN ID is: {bot_cfg.playstation_handle}")
 	elif msg[0] == "!steam":
-		fb_irc.command_irc_send_message("Broadcaster's Steam ID is: " + bot_cfg.steam_handle)
+		fb_irc.command_irc_send_message(f"Broadcaster's Steam ID is: {bot_cfg.steam_handle}")
 	elif msg[0] == "!schedule":
 		now_local_day = datetime.now().strftime("%A")
 		now_local = datetime.now().strftime("%I:%M%p")
 		now_utc = datetime.utcnow().strftime("%A %I:%M%p")
-		fb_irc.command_irc_send_message("Current stream time is: " + now_local_day + " " + now_local + ". Today's schedule is: " + bot_cfg.broadcaster_schedule[now_local_day])
+		fb_irc.command_irc_send_message(f"Current stream time is: {now_local_day} {now_local}. Today's schedule is: {bot_cfg.broadcaster_schedule[now_local_day]}.")
 	elif msg[0] == "!time":
 		now_local = datetime.now().strftime("%A %I:%M%p")
-		fb_irc.command_irc_send_message("Stream time is: " + now_local)
+		fb_irc.command_irc_send_message(f"Stream time is: {now_local}")

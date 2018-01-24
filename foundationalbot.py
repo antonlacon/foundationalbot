@@ -37,7 +37,7 @@ import language_watchlist 	# Bot's file for monitoring language to take action o
 ### START UP VARIABLES ###
 
 # Bot's home channel
-config.bot_channel = "#" + bot_cfg.bot_handle
+config.bot_channel = f"#{bot_cfg.bot_handle}"
 
 ### PARSING VARIABLES ###
 
@@ -62,23 +62,24 @@ def add_user_strike(user):
 	# If user reaches the strike limit, hand out a ban
 	if user_strike_count == bot_cfg.strikes_until_ban and bot_cfg.strikes_until_ban != 0:
 		fb_irc.command_irc_ban(user)
-		print ("LOG: Banned user per strikeout system: " + user)
-		fb_irc.command_irc_send_message(user_displayname + " banned per strikeout system.")
+		print(f"LOG: Banned user per strikeout system: {user}")
+		fb_irc.command_irc_send_message(f"{user_displayname} banned per strikeout system.")
 	else:
 		# Write updated strike count to database
 		fb_sql.db_vt_change_strikes(user, user_strike_count)
-		print ("LOG: Additional strike added to: " + user + ". User's strike count is: " + str(user_strike_count))
+		print(f"LOG: Additional strike added to: {user}. User's strike count is: {str(user_strike_count)}")
 
 		# If user exceeded half of the allowed strikes, give a longer timeout and message in chat
 		if user_strike_count >= (bot_cfg.strikes_until_ban/2) and bot_cfg.strikes_until_ban != 0:
 			fb_irc.command_irc_timeout(user, bot_cfg.strikes_timeout_duration)
-			fb_irc.command_irc_send_message("Warning: " + user_displayname + " in timeout for chat rule violation." + str(bot_cfg.strikes_timeout_duration/60) + " minutes." )
-			print ("LOG: User " + user + " silenced per strikeout policy.")
+			fb_irc.command_irc_send_message(f"Warning: {user_displayname} in timeout for chat rule violation. {str(bot_cfg.strikes_timeout_duration/60)} minutes.")
+			print(f"LOG: User {user} silenced per strikeout policy.")
 		# If user does not have many strikes, clear message(s) and warn
 		else:
 			fb_irc.command_irc_timeout(user, 1)
-			fb_irc.command_irc_send_message("Warning: " + user_displayname + " messages purged for chat rule violation." )
-			print ("LOG: Messages from " + user + " purged.")
+			fb_irc.command_irc_send_message(f"Warning: {user_displayname} messages purged for chat rule violation.")
+			print(f"LOG: Messages from {user} purged.")
+
 
 ### NEGOTIATING CONNECTION TO TWITCH ###
 def initialize_irc_connection():
@@ -90,8 +91,8 @@ def initialize_irc_connection():
 	# Connect to Twitch and enter bot's channel
 	config.irc_socket = socket.socket()
 	config.irc_socket.connect((bot_cfg.host_server, bot_cfg.host_port))
-	config.irc_socket.send("PASS {}\r\n".format(bot_cfg.bot_password).encode("utf-8"))
-	config.irc_socket.send("NICK {}\r\n".format(bot_cfg.bot_handle).encode("utf-8"))
+	config.irc_socket.send(f"PASS {bot_cfg.bot_password}\r\n".encode("utf-8"))
+	config.irc_socket.send(f"NICK {bot_cfg.bot_handle}\r\n".encode("utf-8"))
 	if config.bot_channel in config.channels_present:
 		fb_irc.command_irc_join(config.bot_channel, True)
 	else:
@@ -112,13 +113,14 @@ def initialize_irc_connection():
 				config.active_connection = False
 				initial_connection = False
 			# Last line of a successful login
-			elif ":tmi.twitch.tv 376 {} :>".format(bot_cfg.bot_handle) in message_line:
+			elif f":tmi.twitch.tv 376 {bot_cfg.bot_handle} :>" in message_line:
 				# Tell Twitch to send full messaging metadata and not plain IRC messages
 				config.irc_socket.send("CAP REQ :twitch.tv/tags twitch.tv/commands twitch.tv/membership\r\n".encode("utf-8"))
 				config.active_connection = True
 				initial_connection = False
 	# pause for rate limiter and the number of messages sent in login process
 	sleep((1 / config.message_rate) * (config.messages_sent + 3))
+
 
 ### PARSER LOOP ###
 def main_parser_loop():
@@ -176,11 +178,11 @@ def main_parser_loop():
 					irc_channel_broadcaster = irc_channel[1:]
 					message = irc_message_regex.sub("", message_line)
 				except:
-					print("ERR: "+ now_local_logging + ": Unparsable chat message")
+					print(f"ERR: {now_local_logging}: Unparsable chat message")
 					print(message_line)
 					continue
 
-				print(now_local_logging + ":" + irc_channel + ":" + username + ": " + message)
+				print(f"{now_local_logging}: {irc_channel}: {username}: {message}")
 
 				# Add username to database in case message sent before JOIN message
 				if fb_sql.db_vt_test_username(username) == False:
@@ -199,7 +201,7 @@ def main_parser_loop():
 				     message.strip() == config.raffle_keyword[irc_channel] and
 				     not fb_sql.db_vt_show_raffle(username) ):
 					fb_sql.db_vt_change_raffle(username)
-					print("LOG: " + username + " added to " + irc_channel + "raffle." )
+					print(f"LOG: {username} added to {irc_channel} raffle.")
 
 				# Message censor. Employ a strikeout system and ban policy.
 				if ( bot_is_mod == True and
@@ -209,21 +211,21 @@ def main_parser_loop():
 						if re.search(language_control_test, message):
 
 							add_user_strike(username)
-							print ("LOG: " + username +" earned a strike for violating the language watchlist.")
+							print(f"LOG: {username} earned a strike for violating the language watchlist.")
 
 					# Messages longer than a set length in all uppercase count as a strike
 					if ( len(message) >= bot_cfg.uppercase_message_suppress_length and
 					     message == message.upper() ):
 						add_user_strike(username)
-						print ("LOG: " + username + " earned a timeout for a message in all capitals. Strike added.")
+						print(f"LOG: {username} earned a timeout for a message in all capitals. Strike added.")
 
 			# Monitor MODE messages to detect if bot gains or loses moderator status
 			elif re.search(r" MODE ", message_line):
-				if "#" + bot_cfg.channel + " +o " + bot_cfg.bot_handle in message_line:
+				if f"#{bot_cfg.channel} +o {bot_cfg.bot_handle}" in message_line:
 					print("LOG: Bot gained mod status. Adjusting message rate and monitoring chat.")
 					bot_is_mod = True
 					config.message_rate = (100/30)
-				elif "#" + bot_cfg.channel + " -o " + bot_cfg.bot_handle in message_line:
+				elif f"#{bot_cfg.channel} -o {bot_cfg.bot_handle}" in message_line:
 					print("LOG: Bot lost mod status. Adjusting message rate and no longer moderating chat.")
 					bot_is_mod = False
 					config.message_rate = (20/30)
@@ -286,7 +288,7 @@ def main_parser_loop():
 #			print( fb_sql.db_vt_show_all() )
 
 			# Rate control on sending messages
-#			print("Messages sent: " + str(config.messages_sent))
+#			print(f"Messages sent: {str(config.messages_sent)}")
 			sleep((1 / config.message_rate) * config.messages_sent)
 
 ### MAIN ###
@@ -314,7 +316,7 @@ if __name__ == "__main__":
 		main_parser_loop()
 
 	# Loop broken; time to close things down
-	print( fb_sql.db_vt_show_all() )
+	print(fb_sql.db_vt_show_all())
 	# give feedback from db - # of rows, change from start?
 	fb_sql.db_shutdown(db_connection)
 	exit(0)
