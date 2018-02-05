@@ -202,8 +202,7 @@ def main_parser_loop():
                     fb_commands.command_parser(username, user_mod_status, irc_channel, message)
 
                 # Raffle monitor
-                if ( irc_channel in config.raffle_active and
-                     config.raffle_active[irc_channel] == True and
+                if ( config.raffle_active[irc_channel] == True and
                      message.strip() == config.raffle_keyword[irc_channel] and
                      not fb_sql.db_vt_show_raffle(username) ):
 

@@ -46,6 +46,9 @@ def command_irc_join(channel, reconnect=False):
     config.irc_socket.send(f"JOIN {channel}\r\n".encode("utf-8"))
     if reconnect == False:
         config.channels_present.append(channel)
+    # Add channel to raffle listing
+    if(channel not in config.raffle_active):
+        config.raffle_active[channel] = False
     config.messages_sent += 1
     # Rate limit of 50 JOINs in 15 seconds or about 3 per second
     sleep( 1 / (50 / 15))
@@ -55,6 +58,9 @@ def command_irc_part(channel, reconnect=False):
     config.irc_socket.send(f"PART {channel}\r\n".encode("utf-8"))
     if reconnect == False:
         config.channels_present.remove(channel)
+    # Purge channel from raffle listing
+    if (channel in config.raffle_active):
+        del config.raffle_active[channel]
     config.messages_sent += 1
 
 def command_irc_ping_respond():
