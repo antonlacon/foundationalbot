@@ -154,11 +154,11 @@ def command_parser(username, user_mod_status, irc_channel, message):
 #	elif msg[0] == "!join" and irc_channel == config.bot_channel:
 #		fb_irc.command_irc_send_message(irc_channel, f"Joining: #{username}")
 #		fb_irc.command_irc_join(f"#{username}")
-	elif msg[0] == "!xbl" or msg[0] == "!xb1":
+	elif (msg[0] == "!xbl" or msg[0] == "!xb1") and bot_cfg.xbox_handle != "":
 		fb_irc.command_irc_send_message(f"Broadcaster's XBL ID is: {bot_cfg.xbox_handle}")
-	elif msg[0] == "!psn" or msg[0] == "!ps4":
+	elif (msg[0] == "!psn" or msg[0] == "!ps4") and bot_cfg.playstation_handle != "":
 		fb_irc.command_irc_send_message(f"Broadcaster's PSN ID is: {bot_cfg.playstation_handle}")
-	elif msg[0] == "!steam":
+	elif (msg[0] == "!steam" and bot_cfg.steam_handle != ""):
 		fb_irc.command_irc_send_message(f"Broadcaster's Steam ID is: {bot_cfg.steam_handle}")
 	elif msg[0] == "!schedule":
 		now_local_day = datetime.now().strftime("%A")

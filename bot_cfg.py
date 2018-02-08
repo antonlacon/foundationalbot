@@ -35,7 +35,7 @@ broadcaster_schedule = {
     "Sunday" : "stu"
     }
 
-# Social media settings
+# Game Service Handles - Leave empty to disable corresponding !command
 xbox_handle = ""
 playstation_handle = ""
 steam_handle = ""
