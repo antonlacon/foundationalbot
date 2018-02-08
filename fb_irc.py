@@ -24,7 +24,7 @@ import config               # Variables shared between modules
 
 ### IRC COMMANDS ###
 
-def command_irc_send_message(msg):
+def command_irc_send_message(channel, msg):
     """ Send a message to the specified channel """
     config.irc_socket.send(f"PRIVMSG {channel} :{msg}\r\n".encode("utf-8"))
     config.messages_sent += 1
@@ -51,7 +51,7 @@ def command_irc_join(channel, reconnect=False):
         config.raffle_active[channel] = False
     config.messages_sent += 1
     # Rate limit of 50 JOINs in 15 seconds or about 3 per second
-    sleep( 1 / (50 / 15))
+    sleep(1 / (50 / 15))
 
 def command_irc_part(channel, reconnect=False):
     """ Depart specified channel """
@@ -69,6 +69,7 @@ def command_irc_ping_respond():
     config.messages_sent += 1
 
 def command_irc_quit():
-    """ Leave channel with a departure message """
-    command_irc_send_message("Shutting down.")
-    command_irc_part(config.irc_socket, channel)
+    """ Leave channel(s) with a departure message """
+    for channel in config.channels_present:
+        command_irc_send_message(channel, "Shutting down.")
+        command_irc_part(channel)

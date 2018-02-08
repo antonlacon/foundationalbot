@@ -53,7 +53,7 @@ irc_response_buffer = ""
 
 ### SUPPORT FUNCTIONS ###
 
-def add_user_strike(user):
+def add_user_strike(channel, user):
     """ Strikeout system implementation. Adds a strike and checks effects. """
     user_displayname = fb_sql.db_vt_show_displayname(user)
     user_strike_count = fb_sql.db_vt_show_strikes(user)
@@ -65,7 +65,7 @@ def add_user_strike(user):
     if user_strike_count == bot_cfg.strikes_until_ban and bot_cfg.strikes_until_ban != 0:
         fb_irc.command_irc_ban(user)
         print(f"LOG: Banned user per strikeout system: {user}")
-        fb_irc.command_irc_send_message(f"{user_displayname} banned per strikeout system.")
+        fb_irc.command_irc_send_message(channel, f"{user_displayname} banned per strikeout system.")
     else:
         # Write updated strike count to database
         fb_sql.db_vt_change_strikes(user, user_strike_count)
@@ -74,14 +74,14 @@ def add_user_strike(user):
         # If user exceeded half of the allowed strikes, give a longer timeout and message in chat
         if user_strike_count >= (bot_cfg.strikes_until_ban/2) and bot_cfg.strikes_until_ban != 0:
             fb_irc.command_irc_timeout(user, bot_cfg.strikes_timeout_duration)
-            fb_irc.command_irc_send_message(
+            fb_irc.command_irc_send_message(channel,
                 f"Warning: {user_displayname} in timeout for chat rule violation. {str(bot_cfg.strikes_timeout_duration/60)} minutes."
                 )
             print(f"LOG: User {user} silenced per strikeout policy.")
         # If user does not have many strikes, clear message(s) and warn
         else:
             fb_irc.command_irc_timeout(user, 1)
-            fb_irc.command_irc_send_message(f"Warning: {user_displayname} messages purged for chat rule violation.")
+            fb_irc.command_irc_send_message(channel, f"Warning: {user_displayname} messages purged for chat rule violation.")
             print(f"LOG: Messages from {user} purged.")
 
 
@@ -97,6 +97,7 @@ def initialize_irc_connection():
     config.irc_socket.connect((bot_cfg.host_server, bot_cfg.host_port))
     config.irc_socket.send(f"PASS {bot_cfg.bot_password}\r\n".encode("utf-8"))
     config.irc_socket.send(f"NICK {bot_cfg.bot_handle}\r\n".encode("utf-8"))
+    # If this is a reconnection, else new connection
     if config.bot_channel in config.channels_present:
         fb_irc.command_irc_join(config.bot_channel, True)
     else:
@@ -134,13 +135,13 @@ def main_parser_loop():
     irc_response_buffer = ""
     bot_is_mod = False
 
-    # Join desired channels - need to read responses?
-    if len(config.channels_present) > 1:
+    # Reconnect to any channels bot was in on reconnection
+    if len(config.channels_present) >= 1:
         for channel in config.channels_present:
             if channel is not config.bot_channel:
                 fb_irc.command_irc_join(channel, True)
-    # TODO drop this else clause after multichannel active
-    else:
+    # Automatically join specified channel in bot_cfg.py
+    if bot_cfg.channel not in config.channels_present:
         fb_irc.command_irc_join(bot_cfg.channel)
 
     # Parser loop
@@ -217,13 +218,13 @@ def main_parser_loop():
                     for language_control_test in language_watchlist.prohibited_words:
                         if re.search(language_control_test, message):
 
-                            add_user_strike(username)
+                            add_user_strike(irc_channel, username)
                             print(f"LOG: {username} earned a strike for violating the language watchlist.")
 
                     # Messages longer than set length in all uppercase count as a strike
                     if ( len(message) >= bot_cfg.uppercase_message_suppress_length and
                          message == message.upper() ):
-                        add_user_strike(username)
+                        add_user_strike(irc_channel, username)
                         print(f"LOG: {username} earned a timeout for a message in all capitals. Strike added.")
 
             # Monitor MODE messages to detect if bot gains or loses moderator status
@@ -242,7 +243,7 @@ def main_parser_loop():
                 print("LOG: Reconnecting to server based on message from server.")
                 for channel in config.channels_present:
                     fb_irc.command_irc_part(bot_cfg.channel, True)
-#                   fb_irc.command_irc_send_message("Ordered to reconnect; will return shortly!")
+#                   fb_irc.command_irc_send_message(irc_channel, "Ordered to reconnect; will return shortly!")
                 config.irc_socket.close()
                 config.active_connection = False
 
