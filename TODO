@@ -11,27 +11,21 @@ Core:
         send whispers too
         Needs to be whitelisted by Twitch for sending similar messages - antispam?
     Time Messages to channel
-        follow? youtube? twitter?
+        Rolling timestamps:
+            take a timestamp when bot joins channel
+            add X minutes of delay for message - var for length in bot_cfg
+            send randomized message - list of possible messages in bot_cfg
+                follow? youtube? twitter?
+            update timestamp to next message possibility
     Implement logging / debug / error message levels
         include timestamps
-    Multichannel work
-        Needs threading and queue work which requires classes
-        Get !schedule to account for timezones or differences for each channel
-        !join and !leave comamnds working correctly
-        Adjust RECONNECT once irc_send_message accepts channel assignment
-        Join Bot / admin's channel on login only
-        Have bot track its Mod status in each channel
-        Per channel stikes
-        Adjust sleep to account for whether it had mod privileges for the message or not (sleep duration)
     Format raffle winner's name differently in log (color?)
-    Try a sleep system using date to determine when next message / command is allowed?
-        Utilize a command queue
 Command Parser:
     Integrate user_mod_status in command parser
     Add a !reset command - clears channel strikes, raffle settings, multi settings?
+IRC:
+    Convert ban, unban, timeout to Twitch formatted commands
 SQL:
-    Adjust table creation into one that includes channel data(?)
-        Add limit to searches / queires / inserts where channel is taken into account
     Add a maintenance action where user is deleted from table if strikecount meets limit
     Teach argument parameters for calling directly:
         wipe viewer currency - add a bot command to cmd parser for this too/instead?

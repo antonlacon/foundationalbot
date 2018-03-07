@@ -156,7 +156,6 @@ def db_vt_resetallcurrency():
     """ Reset all viewers' currency to 0. """
     config.db_action.execute("UPDATE Viewers SET Currency = 0")
 
-# TODO convert to generic table drop
 def db_vt_resetviewers():
     """ Globally wipe the Viewer table data. """
     config.db_action.execute("DROP TABLE IF EXISTS Viewers")
@@ -174,6 +173,8 @@ def db_vt_remove_banned_viewers():
 if __name__ == "__main__":
     print("Connection to database...")
     db_connection = db_initialize()
+
+    # Performance maintenance actions on the database
 
     print("Closing database connection...")
     db_shutdown(db_connection)

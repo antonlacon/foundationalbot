@@ -34,10 +34,6 @@ import fb_irc                   # IRC commands
 import fb_sql                   # SQLite database interaction
 import language_watchlist       # Collection of words to take action on
 
-### START UP VARIABLES ###
-
-# Bot's home channel
-config.bot_channel = f"#{bot_cfg.bot_handle}"
 
 ### PARSING VARIABLES ###
 
@@ -97,11 +93,10 @@ def initialize_irc_connection():
     config.irc_socket.connect((bot_cfg.host_server, bot_cfg.host_port))
     config.irc_socket.send(f"PASS {bot_cfg.bot_password}\r\n".encode("utf-8"))
     config.irc_socket.send(f"NICK {bot_cfg.bot_handle}\r\n".encode("utf-8"))
-    if config.bot_channel in config.channels_present:
-        fb_irc.command_irc_join(config.bot_channel, True)
-    else:
-        fb_irc.command_irc_join(config.bot_channel)
     initial_connection = True
+
+    # Join broadcaster's channel
+    fb_irc.command_irc_join(bot_cfg.channel)
 
     # Initial login messages
     # XXX: unbound while loop; count messages and abort if it's reaches a threshold?
@@ -133,15 +128,6 @@ def main_parser_loop():
     """ The main parser loop that processes messages from the IRC server """
     irc_response_buffer = ""
     bot_is_mod = False
-
-    # Join desired channels - need to read responses?
-    if len(config.channels_present) > 1:
-        for channel in config.channels_present:
-            if channel is not config.bot_channel:
-                fb_irc.command_irc_join(channel, True)
-    # TODO drop this else clause after multichannel active
-    else:
-        fb_irc.command_irc_join(bot_cfg.channel)
 
     # Parser loop
     while config.active_connection:
@@ -202,8 +188,8 @@ def main_parser_loop():
                     fb_commands.command_parser(username, user_mod_status, irc_channel, message)
 
                 # Raffle monitor
-                if ( config.raffle_active[irc_channel] == True and
-                     message.strip() == config.raffle_keyword[irc_channel] and
+                if ( config.raffle_active == True and
+                     message.strip() == config.raffle_keyword and
                      not fb_sql.db_vt_show_raffle(username) ):
 
                     # Add user to raffle
@@ -240,9 +226,8 @@ def main_parser_loop():
             # Handle requests to reconnect to the chat servers from Twitch
             elif re.search(r" RECONNECT ", message_line):
                 print("LOG: Reconnecting to server based on message from server.")
-                for channel in config.channels_present:
-                    fb_irc.command_irc_part(bot_cfg.channel, True)
-#                   fb_irc.command_irc_send_message("Ordered to reconnect; will return shortly!")
+                fb_irc.command_irc_part(bot_cfg.channel, True)
+                fb_irc.command_irc_send_message("Ordered by Twitch to reconnect; back in a jiffy!")
                 config.irc_socket.close()
                 config.active_connection = False
 

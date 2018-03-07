@@ -26,12 +26,6 @@ bot_active = False
 irc_socket = None
 db_action = None
 
-# Bot's home channel
-bot_channel = None
-
-# List of channels bot is in
-channels_present = []
-
 # Twitch limits user messages to 20 messages in 30 seconds. Failure to obey is
 # an 8-hour global ban. Moderators have an increased limit to 100 messages in 30
 # seconds. The bot will detect whether it is a mod and adjust its rate limit
@@ -47,6 +41,6 @@ messages_sent = 0
 
 # Raffle variables
 # Dictionary of channel:true/false
-raffle_active = {}
+raffle_active = False
 # Dictionary of channel:keyword
-raffle_keyword = {}
+raffle_keyword = None

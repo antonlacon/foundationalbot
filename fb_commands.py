@@ -44,19 +44,13 @@ def command_parser(username, user_mod_status, irc_channel, message):
         # Quit and reconnect to Twitch (test command)
         elif msg[0] == "!reconnect":
             print(f"LOG: Reconnecting to IRC server on command from: {username}")
-            for channel in config.channels_present:
-                # TODO send status message to each channel saying will reconnect
-                #fb_irc.command_irc_send_message("Ordered to reconnect; will return shortly!")
-                fb_irc.command_irc_part(channel, True)
+            fb_irc.command_irc_send_message("Reconnecting; back in a jiffy!")
+            fb_irc.command_irc_part(bot_cfg.channel, True)
             config.irc_socket.close()
             config.active_connection = False
 
     # Broadcaster Commands
     if username == irc_channel_broadcaster:
-        # Leave channel from message
-#       if msg[0] == "!leave" and irc_channel in config.channels_present:
-#           fb_irc.command_irc_send_message(irc_channel, "So long, and thanks for all the fish!")
-#           fb_irc.command_irc_part(irc_channel)
         # Raffle support commands
         if msg[0] == "!raffle" and len(msg) > 1:
             msg[1] = msg[1].strip().lower()
@@ -151,9 +145,6 @@ def command_parser(username, user_mod_status, irc_channel, message):
     # Commands available to everyone
     if msg[0] == "!test":
         fb_irc.command_irc_send_message("All systems nominal.")
-#   elif msg[0] == "!join" and irc_channel == config.bot_channel:
-#       fb_irc.command_irc_send_message(irc_channel, f"Joining: #{username}")
-#       fb_irc.command_irc_join(f"#{username}")
     elif (msg[0] == "!xbl" or msg[0] == "!xb1") and bot_cfg.xbox_handle != "":
         fb_irc.command_irc_send_message(f"Broadcaster's XBL ID is: {bot_cfg.xbox_handle}")
     elif (msg[0] == "!psn" or msg[0] == "!ps4") and bot_cfg.playstation_handle != "":

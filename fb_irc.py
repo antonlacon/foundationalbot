@@ -30,25 +30,20 @@ def command_irc_send_message(msg):
     config.messages_sent += 1
 
 def command_irc_ban(user):
-    """ Ban a user from the specified channel """
+    """ Ban a user """
     command_irc_send_message(f".ban {user}")
 
 def command_irc_timeout(user, seconds=600):
-    """ Silence user in channel for X seconds (default 10 minutes) """
+    """ Silence user for X seconds (default 10 minutes) """
     command_irc_send_message(f".timeout {user} {seconds}")
 
 def command_irc_unban(user):
-    """ Unban or unsilence a user in the specified channel """
+    """ Unban or unsilence a user """
     command_irc_send_message(f".unban {user}")
 
 def command_irc_join(channel, reconnect=False):
     """ Join specified channel """
     config.irc_socket.send(f"JOIN {channel}\r\n".encode("utf-8"))
-    if reconnect == False:
-        config.channels_present.append(channel)
-    # Add channel to raffle listing
-    if(channel not in config.raffle_active):
-        config.raffle_active[channel] = False
     config.messages_sent += 1
     # Rate limit of 50 JOINs in 15 seconds or about 3 per second
     sleep( 1 / (50 / 15))
@@ -56,11 +51,6 @@ def command_irc_join(channel, reconnect=False):
 def command_irc_part(channel, reconnect=False):
     """ Depart specified channel """
     config.irc_socket.send(f"PART {channel}\r\n".encode("utf-8"))
-    if reconnect == False:
-        config.channels_present.remove(channel)
-        # Purge channel from raffle listing
-        if (channel in config.raffle_active):
-            del config.raffle_active[channel]
     config.messages_sent += 1
 
 def command_irc_ping_respond():
@@ -71,4 +61,5 @@ def command_irc_ping_respond():
 def command_irc_quit():
     """ Leave channel with a departure message """
     command_irc_send_message("Shutting down.")
-    command_irc_part(config.irc_socket, channel)
+    command_irc_part(channel)
+

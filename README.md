@@ -1,10 +1,10 @@
 Foundational Twitch Chat Bot
 ======
 
-A basic chat bot for use by Twitch broadcasters to aid in the production of their channels. It requires at least Python 3.6.
+A chat bot for use by Twitch broadcasters to aid in the production of their channels. It requires at least Python 3.6.
 
 # Status
-This bot is functional, but a work in progress for additional planned features.
+This bot is functional, but a work in progress.
 
 # Chat Commands
 ## Administrator
@@ -22,10 +22,10 @@ This bot is functional, but a work in progress for additional planned features.
 * !voice username: Restore chat privileges to a banned or timedout viewer
 
 ## Editor
-To be written
+None implemented.
 
 ## Moderator
-To be written
+None implemented.
 
 ## Viewer
 * Gaming with the broadcaster
