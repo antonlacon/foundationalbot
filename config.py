@@ -36,6 +36,10 @@ channels_present = []
 # an 8-hour global ban. Moderators have an increased limit to 100 messages in 30
 # seconds. The bot will detect whether it is a mod and adjust its rate limit
 # accordingly.
+#
+# Twitch also allows registering a bot as a bot, changing the default allowed
+# message rate. See:
+# https://discuss.dev.twitch.tv/t/have-a-chat-whisper-bot-let-us-know/10651
 message_rate = (20/30)
 
 # Message counter to rate limit messages sent to Twitch
