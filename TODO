@@ -23,8 +23,6 @@ Core:
 Command Parser:
     Integrate user_mod_status in command parser
     Add a !reset command - clears channel strikes, raffle settings, multi settings?
-IRC:
-    Convert ban, unban, timeout to Twitch formatted commands
 SQL:
     Add a maintenance action where user is deleted from table if strikecount meets limit
     Teach argument parameters for calling directly:

@@ -135,7 +135,7 @@ def command_parser(username, user_mod_status, irc_channel, message):
     if username == irc_channel_broadcaster: #or user_mod_status == ???
         if msg[0] == "!voice" and len(msg) == 2:
             pardoned_user = msg[1].strip().lower()
-            fb_irc.command_irc_unban(pardoned_user)
+            fb_irc.command_irc_untimeout(pardoned_user)
             del pardoned_user
 
     # Subscriber Commands

@@ -38,8 +38,12 @@ def command_irc_timeout(user, seconds=600):
     command_irc_send_message(f".timeout {user} {seconds}")
 
 def command_irc_unban(user):
-    """ Unban or unsilence a user """
+    """ Unban a user """
     command_irc_send_message(f".unban {user}")
+
+def command_irc_untimeout(user):
+    """ End a user timeout  """
+    command_irc_send_message(f".untimeout {user}")
 
 def command_irc_join(channel, reconnect=False):
     """ Join specified channel """
