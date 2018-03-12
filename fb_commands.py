@@ -103,11 +103,11 @@ def command_parser(username, user_mod_status, irc_channel, message):
                     fb_sql.db_vt_change_raffle(raffle_winner)
         # Special effects
         # First sound command
-        elif msg[0] == bot_cfg.sfx1_alias
-            fb_vlc.vlc_play_audio(bot_cfg.sfx1_file)
+        elif msg[0] == bot_cfg.sfx1_alias:
+            fb_vlc.vlc_play_audio(bot_cfg.sfx1_path)
         # Second sound command
-        elif msg[0] == bot_cfg.sfx2_alias
-            fb_vlc.vlc_play_audio(bot_cfg.sfx2_file)
+        elif msg[0] == bot_cfg.sfx2_alias:
+            fb_vlc.vlc_play_audio(bot_cfg.sfx2_path)
 
 
             # Supporting multiple streamers

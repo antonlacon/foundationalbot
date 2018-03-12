@@ -1,14 +1,11 @@
 Foundational Twitch Chat Bot
 ======
 
-A chat bot Twitch broadcasters to aid in the production of their channels.
+A chat bot Twitch broadcasters to aid in the production of their channels. The bot is functional, but a work in progress.
 
-Requirements:
-    * Python 3.6 (or greater)
-    * VLC (for sound effect playback)
-
-# Status
-This bot is functional, but a work in progress.
+# Requirements:
+* Python 3.6 (or greater)
+* VLC (for sound effect playback)
 
 # Chat Commands
 ## Administrator

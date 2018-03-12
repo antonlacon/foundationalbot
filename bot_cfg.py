@@ -49,7 +49,7 @@ steam_handle = ""
 vlc_bin = "C:\Program Files\VideoLAN\VLC\vlc.exe"
 
 # Invoking multiple sound effects will make them play concurrently. There is no queue or
-# blocking for these commands.
+# blocking for these commands. Stopping playback involves killing VLC via task manager.
 
 # Sound Effect 1 Settings
 # The string to listen to for the first sound effect

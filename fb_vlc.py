@@ -35,4 +35,4 @@ def vlc_play_audio(file):
         playback = sp.Popen(VLC_command)
         print(f"LOG: Playback started of {file}")
     else:
-        print(f"ERROR: VLC not found at {bot_cfg.vlc_bin} or incorrect permissions.")
+        print(f"ERR: VLC not found at {bot_cfg.vlc_bin} or incorrect permissions.")
