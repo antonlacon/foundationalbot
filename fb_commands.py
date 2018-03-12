@@ -24,6 +24,7 @@ import bot_cfg                  # Bot's config file
 import config                   # Variables shared between modules
 import fb_irc                   # IRC commands
 import fb_sql                   # SQLite database interaction
+import fb_vlc                   # VLC integration
 
 def command_parser(username, user_mod_status, irc_channel, message):
     irc_channel_broadcaster = irc_channel[1:]
@@ -100,6 +101,15 @@ def command_parser(username, user_mod_status, irc_channel, message):
                     fb_irc.command_irc_send_message(f"Raffle winner: {raffle_winner_displayname}. Winner's chance was: {str((1/len(raffle_contestants)*100))}%")
                     # Only allow winner to win once per raffle
                     fb_sql.db_vt_change_raffle(raffle_winner)
+        # Special effects
+        # First sound command
+        elif msg[0] == bot_cfg.sfx1_alias
+            fb_vlc.vlc_play_audio(bot_cfg.sfx1_file)
+        # Second sound command
+        elif msg[0] == bot_cfg.sfx2_alias
+            fb_vlc.vlc_play_audio(bot_cfg.sfx2_file)
+
+
             # Supporting multiple streamers
 #           elif msg[0] == "!multi":
                 # Multistream support variables

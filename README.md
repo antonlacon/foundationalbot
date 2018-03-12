@@ -1,7 +1,11 @@
 Foundational Twitch Chat Bot
 ======
 
-A chat bot for use by Twitch broadcasters to aid in the production of their channels. It requires at least Python 3.6.
+A chat bot Twitch broadcasters to aid in the production of their channels.
+
+Requirements:
+    * Python 3.6 (or greater)
+    * VLC (for sound effect playback)
 
 # Status
 This bot is functional, but a work in progress.
@@ -19,6 +23,8 @@ This bot is functional, but a work in progress.
 	* !raffle close: Stop monitoring viewers' chat messages for the raffle keyword
 	* !raffle reopen: Continue monitoring viewers' chat messages for the raffle keyword
 	* !raffle winner: Choose and remove a winner from the raffle pool so multiple drawings may be made at once without having one person win multiple drawings
+* !sfx1: A configurable (via bot_cfg.py) sound effect / music file to play with VLC when invoked.
+* !sfx2: See !sfx1.
 * !voice username: Restore chat privileges to a banned or timedout viewer
 
 ## Editor

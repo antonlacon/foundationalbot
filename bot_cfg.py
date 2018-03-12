@@ -40,6 +40,29 @@ xbox_handle = ""
 playstation_handle = ""
 steam_handle = ""
 
+
+# Special Effects
+# Sound effects are played by VLC, so this bot should run on the streaming machine to make
+# use of this feature (or wait for VLC remote control support, which may never come).
+
+# Path to the VLC executable
+vlc_bin = "C:\Program Files\VideoLAN\VLC\vlc.exe"
+
+# Invoking multiple sound effects will make them play concurrently. There is no queue or
+# blocking for these commands.
+
+# Sound Effect 1 Settings
+# The string to listen to for the first sound effect
+sfx1_alias = "!sfx1"
+# The file path to the first sound effect
+sfx1_path = ""
+
+# Sound Effect 2 Settings
+sfx2_alias = "!sfx2"
+sfx2_path = ""
+
+# Chat Moderation
+
 # Language strike out settings
 # Note that the strike count only lasts until bot restarts, unless a database file is used.
 # Bans last until cleared in Twitch channel settings.
