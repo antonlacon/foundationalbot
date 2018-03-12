@@ -35,8 +35,7 @@ None implemented.
 	* !psn or !ps4: Send PSN name to chat
 	* !steam: Send Steam name to chat
 	* !xbl or !xb1: Send XBox Live name to chat
-* !schedule: Send bot's current time and broadcaster's schedule for that day
-* !time: Send the bot's current time to chat
+* !time or !clock: Send the bot's current day and time to chat
 
 # Chat Monitoring
 ## Strikeout System

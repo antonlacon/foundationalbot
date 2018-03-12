@@ -161,13 +161,6 @@ def command_parser(username, user_mod_status, irc_channel, message):
         fb_irc.command_irc_send_message(f"Broadcaster's PSN ID is: {bot_cfg.playstation_handle}")
     elif (msg[0] == "!steam" and bot_cfg.steam_handle != ""):
         fb_irc.command_irc_send_message(f"Broadcaster's Steam ID is: {bot_cfg.steam_handle}")
-    elif msg[0] == "!schedule":
-        now_local_day = datetime.now().strftime("%A")
-        now_local = datetime.now().strftime("%I:%M%p")
-        now_utc = datetime.utcnow().strftime("%A %I:%M%p")
-        fb_irc.command_irc_send_message(
-            f"Current stream time is: {now_local_day} {now_local}. Today's schedule is: {bot_cfg.broadcaster_schedule[now_local_day]}."
-            )
-    elif msg[0] == "!time":
+    elif msg[0] == "!time" or msg[0] == "!clock":
         now_local = datetime.now().strftime("%A %I:%M%p")
         fb_irc.command_irc_send_message(f"Stream time is: {now_local}")

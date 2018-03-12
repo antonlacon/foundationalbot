@@ -24,17 +24,6 @@ bot_handle = "" # must be lowercase
 bot_password = "oauth:" # visit http://twitchapps.com/tmi/ to obtain
 channel = "#" # first character is a hashtag
 
-# Stream Schedule
-broadcaster_schedule = {
-    "Monday" : "abc",
-    "Tuesday" : "def",
-    "Wednesday" : "ghi",
-    "Thursday" : "jkl",
-    "Friday" : "mno",
-    "Saturday" : "pqr",
-    "Sunday" : "stu"
-    }
-
 # Game Service Handles - Leave empty to disable corresponding !command
 xbox_handle = ""
 playstation_handle = ""
