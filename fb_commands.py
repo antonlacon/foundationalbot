@@ -17,11 +17,11 @@
 # along with fb_commands.py. If not, see <http://www.gnu.org/licenses/>.
 
 # Core Modules
-import random                   # Random number generator for raffle
 from datetime import datetime   # date functions
 # Project Modules
 import bot_cfg                  # Bot's config file
 import config                   # Variables shared between modules
+import fb_common                # Shared functions across modules
 import fb_irc                   # IRC commands
 import fb_sql                   # SQLite database interaction
 import fb_vlc                   # VLC integration
@@ -92,7 +92,7 @@ def command_parser(username, user_mod_status, irc_channel, message):
                 if len(raffle_contestants) == 0:
                     fb_irc.command_irc_send_message("No winners available; raffle pool is empty.")
                 else:
-                    raffle_winner = raffle_contestants[random.randrange(0,len(raffle_contestants),1)]
+                    raffle_winner = raffle_contestants[fb_common.generate_number(0,len(raffle_contestants))]
                     raffle_winner = raffle_winner[0]
                     raffle_winner_displayname = fb_sql.db_vt_show_displayname(raffle_winner)
                     print(f"LOG: Raffle winner: {raffle_winner}")
