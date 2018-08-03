@@ -59,19 +59,18 @@ def command_parser(username, user_mod_status, irc_channel, message):
             if msg[1] == "keyword" and len(msg) == 3:
                 # Reset raffle status as new keyword entered
                 fb_sql.db_vt_reset_all_raffle()
-                config.raffle_keyword[irc_channel] = msg[2].strip()
-                print(f"LOG: Raffle keyword set to: {config.raffle_keyword[irc_channel]}")
-                fb_irc.command_irc_send_message(f"Raffle keyword set to: {config.raffle_keyword[irc_channel]}")
-                config.raffle_active[irc_channel] = True
+                config.raffle_keyword = msg[2].strip()
+                print(f"LOG: Raffle keyword set to: {config.raffle_keyword}")
+                fb_irc.command_irc_send_message(f"Raffle keyword set to: {config.raffle_keyword}")
+                config.raffle_active = True
             # Rest all raffle settings
             elif msg[1] == "clear":
-                # TODO limit to channel's raffle
                 print("LOG: Raffle entries cleared.")
                 fb_sql.db_vt_reset_all_raffle()
                 raffle_winner = None
                 raffle_winner_displayname = None
-                config.raffle_keyword[irc_channel] = None
-                config.raffle_active[irc_channel] = None
+                config.raffle_keyword = None
+                config.raffle_active = False
                 fb_irc.command_irc_send_message("Raffle settings and contestant entries cleared.")
             # Announce number of entries in pool
             elif msg[1] == "count":
@@ -79,17 +78,16 @@ def command_parser(username, user_mod_status, irc_channel, message):
                 fb_irc.command_irc_send_message(f"Raffle contestants: {str(len(fb_sql.db_vt_show_all_raffle()))}")
             # Closing raffle to new entries
             elif msg[1] == "close":
-                config.raffle_active[irc_channel] = False
+                config.raffle_active = False
                 print("LOG: Raffle closed to further entries.")
                 fb_irc.command_irc_send_message("Raffle closed to further entries.")
             # Reopens raffle to entries
             elif msg[1] == "reopen":
-                config.raffle_active[irc_channel] = True
+                config.raffle_active = True
                 print("LOG: Raffle reopened for entries.")
                 fb_irc.command_irc_send_message("Raffle reopened.")
             # Selecting a winner from the pool
             elif msg[1] == "winner":
-                # TODO is this limited to channel's raffle?
                 raffle_contestants = fb_sql.db_vt_show_all_raffle()
                 if len(raffle_contestants) == 0:
                     fb_irc.command_irc_send_message("No winners available; raffle pool is empty.")
